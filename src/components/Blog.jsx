@@ -1,83 +1,86 @@
-import { motion } from 'framer-motion'
+import { useRef, useEffect } from 'react'
+import posts from '../data/posts.json'
 
-
-function formatDate(dateStr) {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+function useReveal(ref) {
+  useEffect(() => {
+    if (!ref.current) return
+    const el = ref.current
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) el.classList.add('is-visible') },
+      { threshold: 0.08 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [ref])
 }
 
-export default function Blog({ posts }) {
-  const data = posts
+function formatDate(str) {
+  if (!str) return ''
+  return new Date(str).toLocaleDateString('en-US', { year: 'numeric', month: 'short' })
+}
+
+function PostRow({ post, index }) {
+  const ref = useRef(null)
+  useReveal(ref)
+
+  const inner = (
+    <div
+      ref={ref}
+      className="reveal group py-6 border-b border-dim/30"
+      style={{ transitionDelay: `${index * 40}ms` }}
+    >
+      <div className="flex items-baseline justify-between gap-6">
+        <span
+          className="font-serif text-cream list-item-title"
+          style={{ fontSize: '18px' }}
+        >
+          {post.title}
+        </span>
+        {post.date && (
+          <span className="font-mono text-stone shrink-0" style={{ fontSize: '11px', letterSpacing: '0.08em' }}>
+            {formatDate(post.date)}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+
+  if (post.link) {
+    return (
+      <a href={post.link} target="_blank" rel="noopener noreferrer" className="block" style={{ textDecoration: 'none' }}>
+        {inner}
+      </a>
+    )
+  }
+
+  return <div>{inner}</div>
+}
+
+export default function Blog() {
+  const headerRef = useRef(null)
+  useReveal(headerRef)
 
   return (
-    <section id="blog" className="py-24 px-6 max-w-6xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="mb-12"
-      >
-        <p className="text-muted text-sm font-medium tracking-widest uppercase mb-3">Writing</p>
-        <h2 className="text-4xl font-extrabold text-white tracking-tight">Blog</h2>
-      </motion.div>
+    <section id="writing" style={{ paddingTop: '140px', paddingBottom: '140px' }}>
+      <div className="content-wrap">
+        <div ref={headerRef} className="reveal mb-12">
+          <div className="divider mb-6" />
+          <h2 className="font-serif text-cream" style={{ fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+            Writing
+          </h2>
+        </div>
 
-      {data.length === 0 && (
-        <p className="text-muted text-sm">No posts published yet — check back soon.</p>
-      )}
-      <div className="flex flex-col divide-y divide-border">
-        {data.map((post, i) => (
-          <motion.article
-            key={post.id}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5, delay: i * 0.08 }}
-            className="py-8 group"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-              <div className="flex-1">
-                {post.link ? (
-                  <a
-                    href={post.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
-                  >
-                    <h3 className="text-white font-bold text-xl leading-snug mb-2 group-hover:text-accent transition-colors">
-                      {post.title}
-                    </h3>
-                  </a>
-                ) : (
-                  <h3 className="text-white font-bold text-xl leading-snug mb-2">{post.title}</h3>
-                )}
-                {post.summary && (
-                  <p className="text-muted text-sm leading-relaxed max-w-2xl">{post.summary}</p>
-                )}
-              </div>
-              {post.date && (
-                <time className="text-muted text-xs font-medium whitespace-nowrap sm:mt-1">
-                  {formatDate(post.date)}
-                </time>
-              )}
-            </div>
-
-            {post.link && (
-              <a
-                href={post.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-muted hover:text-white transition-colors"
-              >
-                Read post
-                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                  <path d="M2.5 9.5L9.5 2.5M9.5 2.5H4M9.5 2.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </a>
-            )}
-          </motion.article>
-        ))}
+        {posts.length === 0 ? (
+          <p className="font-mono text-stone" style={{ fontSize: '12px' }}>
+            nothing published yet.
+          </p>
+        ) : (
+          <div>
+            {posts.map((post, i) => (
+              <PostRow key={post.id} post={post} index={i} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )
