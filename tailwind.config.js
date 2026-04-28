@@ -4,14 +4,17 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', 'sans-serif'],
+        serif: ['"Instrument Serif"', 'Georgia', 'serif'],
+        mono: ['"IBM Plex Mono"', 'monospace'],
       },
       colors: {
-        bg: '#0a0a0a',
-        surface: '#111111',
-        border: '#1f1f1f',
-        accent: '#e5e5e5',
-        muted: '#6b6b6b',
+        canvas:  '#0d0c0a',
+        cream:   '#e8e4dc',
+        gold:    '#c8a96e',
+        stone:   '#3a3832',
+      },
+      letterSpacing: {
+        widest2: '0.15em',
       },
     },
   },

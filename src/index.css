@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,22 +10,137 @@
   }
 
   body {
-    @apply bg-bg text-white font-sans antialiased;
+    @apply bg-canvas text-cream font-mono antialiased;
   }
 
   ::selection {
-    @apply bg-white text-bg;
+    background: #3a3832;
+    color: #e8e4dc;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-bg;
+    background: #0d0c0a;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-border rounded-full;
+    background: #3a3832;
+  }
+}
+
+@layer utilities {
+  /* Content layout: max 620px, left-aligned at 12vw */
+  .content-wrap {
+    max-width: 620px;
+    margin-left: 12vw;
+    padding-right: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .content-wrap {
+      max-width: 90vw;
+      margin-left: 5vw;
+      padding-right: 1rem;
+    }
+  }
+
+  /* Section divider: 40px 1px line, left-aligned */
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: #3a3832;
+  }
+
+  /* Scroll reveal — JS toggles .is-visible */
+  .reveal {
+    opacity: 0;
+    transition: opacity 600ms ease-out;
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+  }
+
+  /* Chevron pulse */
+  @keyframes slow-pulse {
+    0%, 100% { opacity: 0.25; }
+    50%       { opacity: 0.7; }
+  }
+
+  .chevron-pulse {
+    animation: slow-pulse 3s ease-in-out infinite;
+  }
+
+  /* Nav hover */
+  .nav-link {
+    color: #3a3832;
+    letter-spacing: 0.15em;
+    font-size: 11px;
+    text-transform: uppercase;
+    transition: color 200ms ease;
+    font-family: 'IBM Plex Mono', monospace;
+    text-decoration: none;
+  }
+
+  .nav-link:hover {
+    color: #e8e4dc;
+  }
+
+  /* Coming soon nav item */
+  .nav-coming-soon {
+    opacity: 0.35;
+    pointer-events: none;
+  }
+
+  /* Project / post list hover */
+  .list-item-title {
+    transition: color 200ms ease;
+  }
+
+  .list-item-title:hover {
+    color: #c8a96e;
+  }
+
+  /* Filter tab */
+  .filter-tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #3a3832;
+    cursor: pointer;
+    padding-bottom: 2px;
+    border-bottom: 1px solid transparent;
+    transition: color 200ms ease, border-color 200ms ease;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .filter-tab:hover {
+    color: #e8e4dc;
+  }
+
+  .filter-tab.active {
+    color: #c8a96e;
+    border-bottom-color: #c8a96e;
+  }
+
+  /* Mobile nav overlay */
+  .nav-overlay {
+    position: fixed;
+    inset: 0;
+    background: #0d0c0a;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    padding-left: 12vw;
+    gap: 2rem;
   }
 }

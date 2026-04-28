@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { useRef, useEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import VideoEmbed from '../components/VideoEmbed'
@@ -14,70 +14,98 @@ function getCaseStudy(slug) {
   return caseStudyModules[key]?.default ?? caseStudyModules[key] ?? null
 }
 
-// Markdown component overrides — styled to match the dark aesthetic
+function useReveal(ref) {
+  useEffect(() => {
+    if (!ref.current) return
+    const el = ref.current
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) el.classList.add('is-visible') },
+      { threshold: 0.05 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [ref])
+}
+
+function Section({ children, delay = 0 }) {
+  const ref = useRef(null)
+  useReveal(ref)
+  return (
+    <div ref={ref} className="reveal" style={{ transitionDelay: `${delay}ms` }}>
+      {children}
+    </div>
+  )
+}
+
+// Markdown rendering — Glass Room aesthetic
 const mdComponents = {
   h1: ({ children }) => (
-    <h1 className="text-3xl font-extrabold text-white mt-10 mb-4 tracking-tight">{children}</h1>
+    <h1 className="font-serif text-cream" style={{ fontSize: '28px', marginTop: '3rem', marginBottom: '1rem', lineHeight: 1.3 }}>
+      {children}
+    </h1>
   ),
   h2: ({ children }) => (
-    <h2 className="text-2xl font-bold text-white mt-10 mb-3 tracking-tight border-t border-border pt-8">
-      {children}
-    </h2>
+    <>
+      <div className="divider" style={{ marginTop: '3.5rem', marginBottom: '1.5rem' }} />
+      <h2 className="font-serif text-cream" style={{ fontSize: '20px', marginBottom: '1rem', lineHeight: 1.4 }}>
+        {children}
+      </h2>
+    </>
   ),
   h3: ({ children }) => (
-    <h3 className="text-lg font-bold text-white mt-6 mb-2">{children}</h3>
+    <h3 className="font-mono text-cream" style={{ fontSize: '13px', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '2rem', marginBottom: '0.75rem' }}>
+      {children}
+    </h3>
   ),
   p: ({ children }) => (
-    <p className="text-muted leading-relaxed mb-4">{children}</p>
+    <p className="font-mono text-stone" style={{ fontSize: '13px', lineHeight: 1.85, marginBottom: '1.2rem', letterSpacing: '0.02em' }}>
+      {children}
+    </p>
   ),
-  ul: ({ children }) => (
-    <ul className="space-y-2 mb-4 pl-4">{children}</ul>
-  ),
-  ol: ({ children }) => (
-    <ol className="space-y-2 mb-4 pl-4 list-decimal">{children}</ol>
-  ),
+  ul: ({ children }) => <ul style={{ marginBottom: '1.2rem', paddingLeft: 0 }}>{children}</ul>,
+  ol: ({ children }) => <ol style={{ marginBottom: '1.2rem', paddingLeft: '1rem' }}>{children}</ol>,
   li: ({ children }) => (
-    <li className="text-muted leading-relaxed flex gap-2">
-      <span className="text-white mt-1 shrink-0">—</span>
+    <li className="font-mono text-stone" style={{ fontSize: '13px', lineHeight: 1.85, marginBottom: '0.4rem', letterSpacing: '0.02em', listStyle: 'none', display: 'flex', gap: '0.75rem' }}>
+      <span className="text-stone" style={{ userSelect: 'none' }}>—</span>
       <span>{children}</span>
     </li>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="border-l-2 border-white/20 pl-4 my-4 text-muted italic">{children}</blockquote>
+    <blockquote style={{ borderLeft: '1px solid #3a3832', paddingLeft: '1rem', margin: '1.5rem 0' }}>
+      {children}
+    </blockquote>
   ),
-  code: ({ inline, children }) =>
-    inline ? (
-      <code className="bg-surface border border-border text-white text-sm px-1.5 py-0.5 rounded-sm font-mono">
-        {children}
-      </code>
-    ) : (
-      <pre className="bg-surface border border-border rounded-sm p-4 overflow-x-auto my-4">
-        <code className="text-sm font-mono text-white">{children}</code>
-      </pre>
-    ),
-  hr: () => <hr className="border-border my-8" />,
+  code: ({ inline, children }) => inline
+    ? <code className="font-mono text-cream" style={{ fontSize: '12px', background: 'rgba(58,56,50,0.4)', padding: '1px 5px' }}>{children}</code>
+    : <pre className="font-mono text-stone" style={{ fontSize: '12px', overflowX: 'auto', margin: '1.5rem 0', padding: '1rem', border: '1px solid #3a3832' }}><code>{children}</code></pre>,
+  hr: () => <div className="divider" style={{ margin: '3rem 0' }} />,
   a: ({ href, children }) => (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-2 hover:text-muted transition-colors">
+    <a href={href} target="_blank" rel="noopener noreferrer" className="font-mono text-gold" style={{ fontSize: '13px', textDecoration: 'none', borderBottom: '1px solid #c8a96e40' }}>
       {children}
     </a>
   ),
   img: ({ src, alt }) => (
-    <img src={src} alt={alt} className="rounded-sm border border-border w-full my-6 object-cover" />
+    <img src={src} alt={alt} style={{ width: '100%', display: 'block', margin: '2rem 0' }} />
   ),
-  strong: ({ children }) => <strong className="text-white font-semibold">{children}</strong>,
+  strong: ({ children }) => <strong className="text-cream font-mono" style={{ fontWeight: 500 }}>{children}</strong>,
 }
+
+// Placeholder sections shown when no Notion page is linked yet
+const PLACEHOLDER_SECTIONS = ['Overview', 'Problem', 'Research & Insights', 'Solution', 'Outcomes']
 
 export default function ProjectDetail() {
   const { slug } = useParams()
-  const project = projects.find((p) => p.slug === slug)
-  const caseStudy = getCaseStudy(slug)
+  const project    = projects.find((p) => p.slug === slug)
+  const caseStudy  = getCaseStudy(slug)
 
   if (!project) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center px-6">
-        <p className="text-muted text-sm mb-4">Project not found.</p>
-        <Link to="/" className="text-white text-sm font-semibold underline underline-offset-2">
-          ← Back to home
+      <div className="bg-canvas min-h-screen flex flex-col items-center justify-center">
+        <p className="font-mono text-stone" style={{ fontSize: '12px', marginBottom: '1.5rem' }}>
+          project not found.
+        </p>
+        <Link to="/" className="font-mono text-stone nav-link" style={{ fontSize: '11px' }}>
+          ← all work
         </Link>
       </div>
     )
@@ -88,137 +116,97 @@ export default function ProjectDetail() {
     : [project.category].filter(Boolean)
 
   return (
-    <div className="min-h-screen bg-bg">
-      {/* Back nav */}
-      <div className="max-w-3xl mx-auto px-6 pt-10">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-2 text-muted text-sm font-medium hover:text-white transition-colors"
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M11 7H3M3 7L7 3M3 7L7 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          All Projects
+    <div className="bg-canvas min-h-screen">
+      {/* Back link */}
+      <div className="content-wrap" style={{ paddingTop: '3rem' }}>
+        <Link to="/" className="font-mono text-stone nav-link" style={{ fontSize: '11px' }}>
+          ← work
         </Link>
       </div>
 
-      {/* Hero */}
-      <motion.header
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="max-w-3xl mx-auto px-6 pt-10 pb-12"
-      >
-        {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-5">
-            {categories.map((cat) => (
-              <span
-                key={cat}
-                className="text-xs font-semibold text-muted tracking-widest uppercase border border-border px-2 py-0.5 rounded-sm"
-              >
-                {cat}
-              </span>
+      {/* Project hero */}
+      <header className="content-wrap" style={{ paddingTop: '4rem', paddingBottom: '4rem' }}>
+        <Section>
+          <div className="font-mono text-stone" style={{ fontSize: '11px', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1.5rem' }}>
+            {categories.join(' · ')}
+          </div>
+          <h1 className="font-serif text-cream" style={{ fontSize: '36px', lineHeight: 1.2, marginBottom: '1rem' }}>
+            {project.name}
+          </h1>
+          <p className="font-mono text-stone" style={{ fontSize: '13px', lineHeight: 1.75, marginBottom: '2rem' }}>
+            {project.tagline}
+          </p>
+          {project.link && (
+            <a
+              href={project.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-stone nav-link"
+              style={{ fontSize: '11px' }}
+            >
+              view project ↗
+            </a>
+          )}
+        </Section>
+      </header>
+
+      <div className="content-wrap">
+        <div className="divider" />
+      </div>
+
+      {/* Body */}
+      <main className="content-wrap" style={{ paddingTop: '3rem', paddingBottom: '6rem' }}>
+
+        {/* Video */}
+        {project.videoURL && (
+          <Section delay={50}>
+            <div className="font-mono text-stone" style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '1rem', marginTop: '3rem' }}>
+              Walkthrough
+            </div>
+            <VideoEmbed url={project.videoURL} />
+          </Section>
+        )}
+
+        {/* Case study markdown or placeholder */}
+        {caseStudy?.markdown ? (
+          <Section delay={80}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
+              {caseStudy.markdown}
+            </ReactMarkdown>
+          </Section>
+        ) : (
+          <div style={{ marginTop: '3rem' }}>
+            {PLACEHOLDER_SECTIONS.map((title, i) => (
+              <Section key={title} delay={i * 60}>
+                <div className="divider" style={{ margin: '3rem 0 1.5rem' }} />
+                <h2 className="font-serif text-cream" style={{ fontSize: '20px', marginBottom: '0.75rem' }}>
+                  {title}
+                </h2>
+                <p className="font-mono text-stone" style={{ fontSize: '12px', fontStyle: 'italic' }}>
+                  Add a {title} block to the Notion case study page.
+                </p>
+              </Section>
             ))}
           </div>
         )}
 
-        <h1 className="text-4xl sm:text-5xl font-extrabold text-white leading-tight tracking-tight mb-4">
-          {project.name}
-        </h1>
-        <p className="text-xl text-muted leading-relaxed">{project.tagline}</p>
-
-        {/* External link */}
-        {project.link && (
-          <a
-            href={project.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-white border border-border px-5 py-2.5 rounded-sm hover:bg-white hover:text-bg transition-colors"
-          >
-            View Project
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2.5 9.5L9.5 2.5M9.5 2.5H4M9.5 2.5V8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </a>
-        )}
-      </motion.header>
-
-      <div className="border-t border-border" />
-
-      {/* Body */}
-      <main className="max-w-3xl mx-auto px-6 py-12 space-y-14">
-
-        {/* Video */}
-        {project.videoURL && (
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-          >
-            <h2 className="text-xs font-semibold text-muted tracking-widest uppercase mb-4">Walkthrough</h2>
-            <VideoEmbed url={project.videoURL} />
-          </motion.section>
-        )}
-
-        {/* Case Study Markdown */}
-        {caseStudy?.markdown ? (
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-          >
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>
-              {caseStudy.markdown}
-            </ReactMarkdown>
-          </motion.section>
-        ) : (
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="space-y-8"
-          >
-            {[
-              { title: 'Overview', body: 'Add an Overview block to the Notion case study page.' },
-              { title: 'Problem', body: 'Add a Problem block to the Notion case study page.' },
-              { title: 'Research & Insights', body: 'Add a Research & Insights block to the Notion case study page.' },
-              { title: 'Solution', body: 'Add a Solution block to the Notion case study page.' },
-              { title: 'Outcomes', body: 'Add an Outcomes block to the Notion case study page.' },
-            ].map((s, i) => (
-              <div key={s.title} className={i > 0 ? 'border-t border-border pt-8' : ''}>
-                <h2 className="text-2xl font-bold text-white mb-3 tracking-tight">{s.title}</h2>
-                <p className="text-muted text-sm italic">{s.body}</p>
-              </div>
-            ))}
-          </motion.section>
-        )}
-
-        {/* PDF Attachment */}
+        {/* PDF attachment */}
         {project.attachmentURL && (
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <h2 className="text-xs font-semibold text-muted tracking-widest uppercase mb-4">Attachment</h2>
+          <Section delay={100}>
+            <div className="font-mono text-stone" style={{ fontSize: '10px', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: '1rem', marginTop: '3rem' }}>
+              Attachment
+            </div>
             <PDFViewer url={project.attachmentURL} />
-          </motion.section>
+          </Section>
         )}
       </main>
 
       {/* Footer nav */}
-      <div className="border-t border-border mt-4">
-        <div className="max-w-3xl mx-auto px-6 py-10 flex justify-between items-center">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-muted text-sm font-medium hover:text-white transition-colors"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M11 7H3M3 7L7 3M3 7L7 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            All Projects
-          </Link>
-        </div>
+      <div className="content-wrap" style={{ paddingBottom: '4rem' }}>
+        <div className="divider" style={{ marginBottom: '2rem' }} />
+        <Link to="/" className="font-mono text-stone nav-link" style={{ fontSize: '11px' }}>
+          ← work
+        </Link>
       </div>
     </div>
   )

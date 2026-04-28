@@ -1,72 +1,135 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import ProjectCard from './ProjectCard'
+import { useState, useRef, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import projects from '../data/projects.json'
 
-export default function Projects({ projects }) {
-  const data = projects
-  const categories = [
-    'All',
-    ...Array.from(
-      new Set(
-        data.flatMap((p) => (Array.isArray(p.category) ? p.category : [p.category])).filter(Boolean)
-      )
-    ),
-  ]
-  const [active, setActive] = useState('All')
+function useReveal(ref) {
+  useEffect(() => {
+    if (!ref.current) return
+    const el = ref.current
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) el.classList.add('is-visible') },
+      { threshold: 0.08 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [ref])
+}
 
-  const filtered =
-    active === 'All'
-      ? data
-      : data.filter((p) =>
-          Array.isArray(p.category) ? p.category.includes(active) : p.category === active
-        )
+function ProjectRow({ project, index }) {
+  const ref = useRef(null)
+  useReveal(ref)
 
-  return (
-    <section id="projects" className="py-24 px-6 max-w-6xl mx-auto">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-      >
-        <p className="text-muted text-sm font-medium tracking-widest uppercase mb-3">Work</p>
-        <h2 className="text-4xl font-extrabold text-white tracking-tight mb-10">Projects</h2>
-      </motion.div>
+  const categories = Array.isArray(project.category)
+    ? project.category
+    : [project.category].filter(Boolean)
 
-      {/* Filter tabs */}
-      <div className="flex flex-wrap gap-2 mb-10">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActive(cat)}
-            className={`px-4 py-1.5 text-xs font-semibold tracking-wider uppercase rounded-sm border transition-colors ${
-              active === cat
-                ? 'bg-white text-bg border-white'
-                : 'border-border text-muted hover:border-white/40 hover:text-white'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+  const inner = (
+    <div
+      ref={ref}
+      className="reveal group py-6 border-b border-stone/30"
+      style={{ transitionDelay: `${index * 40}ms` }}
+    >
+      <div className="flex items-baseline gap-4 mb-1.5">
+        <span
+          className="font-serif text-cream list-item-title"
+          style={{ fontSize: '18px' }}
+        >
+          {project.name}
+        </span>
+        {project.videoURL && (
+          <span className="font-mono text-stone" style={{ fontSize: '9px', letterSpacing: '0.12em' }}>▶ VIDEO</span>
+        )}
+        {project.attachmentURL && (
+          <span className="font-mono text-stone" style={{ fontSize: '9px', letterSpacing: '0.12em' }}>PDF</span>
+        )}
       </div>
 
-      {/* Card grid */}
-      <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <AnimatePresence mode="popLayout">
-          {filtered.map((project) => (
-            <motion.div
-              key={project.id}
-              layout
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.25 }}
+      <div className="flex items-center gap-3 mb-0">
+        <span className="font-mono text-stone" style={{ fontSize: '11px', letterSpacing: '0.1em' }}>
+          {categories.join(' · ')}
+        </span>
+      </div>
+
+      {/* One-line description — appears on hover */}
+      {project.tagline && (
+        <p
+          className="font-mono text-stone mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+          style={{ fontSize: '12px', letterSpacing: '0.03em' }}
+        >
+          {project.tagline}
+        </p>
+      )}
+    </div>
+  )
+
+  if (project.caseStudyPageId) {
+    return (
+      <Link to={`/projects/${project.slug}`} className="block" style={{ textDecoration: 'none' }}>
+        {inner}
+      </Link>
+    )
+  }
+
+  return <div>{inner}</div>
+}
+
+export default function Projects() {
+  const headerRef = useRef(null)
+  useReveal(headerRef)
+
+  // All unique categories from the Notion data
+  const allCategories = ['All', ...Array.from(
+    new Set(
+      projects.flatMap((p) => Array.isArray(p.category) ? p.category : [p.category]).filter(Boolean)
+    )
+  )]
+
+  const [active, setActive] = useState('All')
+
+  // Featured first, then by order
+  const sorted = [...projects].sort((a, b) => {
+    if (a.featured && !b.featured) return -1
+    if (!a.featured && b.featured) return 1
+    return (a.order ?? 99) - (b.order ?? 99)
+  })
+
+  const filtered = active === 'All'
+    ? sorted
+    : sorted.filter((p) =>
+        Array.isArray(p.category) ? p.category.includes(active) : p.category === active
+      )
+
+  return (
+    <section id="work" style={{ paddingTop: '140px', paddingBottom: '140px' }}>
+      <div className="content-wrap">
+        {/* Section header */}
+        <div ref={headerRef} className="reveal mb-12">
+          <div className="divider mb-6" />
+          <h2 className="font-serif text-cream" style={{ fontSize: '13px', letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+            Work
+          </h2>
+        </div>
+
+        {/* Filter tabs */}
+        <div className="flex flex-wrap gap-6 mb-10">
+          {allCategories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActive(cat)}
+              className={`filter-tab${active === cat ? ' active' : ''}`}
             >
-              <ProjectCard project={project} />
-            </motion.div>
+              {cat}
+            </button>
           ))}
-        </AnimatePresence>
-      </motion.div>
+        </div>
+
+        {/* Project list */}
+        <div>
+          {filtered.map((project, i) => (
+            <ProjectRow key={project.id} project={project} index={i} />
+          ))}
+        </div>
+      </div>
     </section>
   )
 }
