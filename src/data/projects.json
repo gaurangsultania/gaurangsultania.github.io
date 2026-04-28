@@ -1,6 +1,7 @@
 [
   {
     "id": "34fb3620-ce21-81f8-81d2-cbfcee7c9066",
+    "slug": "chataak",
     "name": "Chataak",
     "tagline": "Connecting brands with the right influencers at scale",
     "category": [
@@ -9,10 +10,14 @@
     ],
     "featured": true,
     "link": "",
-    "order": 1
+    "order": 1,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": ""
   },
   {
     "id": "34fb3620-ce21-8164-b54d-db4f10b962a1",
+    "slug": "proven-ai",
     "name": "Proven AI",
     "tagline": "Rethinking how talent proves itself",
     "category": [
@@ -20,10 +25,14 @@
     ],
     "featured": true,
     "link": "",
-    "order": 2
+    "order": 2,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": ""
   },
   {
     "id": "34fb3620-ce21-8132-a9ef-d10a7b9f8999",
+    "slug": "nothing-frame-01-in-app-experience",
     "name": "Nothing Frame 01 — In-App Experience",
     "tagline": "Mixed reality eyewear meets ambient computing",
     "category": [
@@ -32,10 +41,14 @@
     ],
     "featured": true,
     "link": "https://app.getrocket.com/share/placeholder",
-    "order": 3
+    "order": 3,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": ""
   },
   {
     "id": "34fb3620-ce21-8180-9553-fe84fa2337b2",
+    "slug": "pgp-resume-extractor",
     "name": "PGP Resume Extractor",
     "tagline": "A Chrome extension built for ISB students",
     "category": [
@@ -43,10 +56,14 @@
     ],
     "featured": true,
     "link": "",
-    "order": 7
+    "order": 7,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": ""
   },
   {
     "id": "34fb3620-ce21-819e-b68b-d5cb15762c75",
+    "slug": "aarogya-sahayak",
     "name": "Aarogya Sahayak",
     "tagline": "Digital healthcare for underserved India",
     "category": [
@@ -55,10 +72,14 @@
     ],
     "featured": false,
     "link": "https://app.getrocket.com/share/placeholder",
-    "order": 4
+    "order": 4,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": ""
   },
   {
     "id": "34fb3620-ce21-81a1-8e10-faac0c6e49b6",
+    "slug": "teardown-instagram-threads",
     "name": "Teardown — Instagram Threads",
     "tagline": "How Meta built a Twitter killer in 5 days",
     "category": [
@@ -67,10 +88,14 @@
     ],
     "featured": false,
     "link": "",
-    "order": 5
+    "order": 5,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": ""
   },
   {
     "id": "34fb3620-ce21-8101-a193-e9562cabdbd2",
+    "slug": "make-my-trip-map-based-ux",
     "name": "Make My Trip — Map Based UX",
     "tagline": "Reimagining travel search through spatial context",
     "category": [
@@ -78,6 +103,9 @@
     ],
     "featured": false,
     "link": "",
-    "order": 6
+    "order": 6,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": ""
   }
 ]
