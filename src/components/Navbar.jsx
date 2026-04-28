@@ -34,7 +34,7 @@ export default function Navbar() {
         className="fixed top-6 right-6 z-[110] md:hidden"
         onClick={() => setOpen((v) => !v)}
         aria-label="Toggle navigation"
-        style={{ color: '#3a3832', fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer' }}
+        style={{ color: '#6b6560', fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer' }}
       >
         {open ? '✕' : '☰'}
       </button>

@@ -82,7 +82,7 @@ export default function Hero() {
         // Particle dot — barely there
         ctx.beginPath()
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2)
-        ctx.fillStyle = 'rgba(200, 195, 180, 0.28)'
+        ctx.fillStyle = 'rgba(200, 195, 180, 0.85)'
         ctx.fill()
       }
 
@@ -93,7 +93,7 @@ export default function Hero() {
           const dy   = particles[i].y - particles[j].y
           const dist = Math.hypot(dx, dy)
           if (dist < LINE_DIST) {
-            const alpha = (1 - dist / LINE_DIST) * 0.13
+            const alpha = (1 - dist / LINE_DIST) * 0.45
             ctx.beginPath()
             ctx.moveTo(particles[i].x, particles[i].y)
             ctx.lineTo(particles[j].x, particles[j].y)
@@ -130,7 +130,7 @@ export default function Hero() {
         {/* HERO_LINE — replace this string with your own line */}
         <p
           className="font-serif text-cream text-center px-6"
-          style={{ fontSize: '28px', opacity: 0.85, letterSpacing: '0.01em', lineHeight: 1.4 }}
+          style={{ fontSize: '33px', opacity: 0.85, letterSpacing: '0.01em', lineHeight: 1.4 }}
         >
           things worth making take time to notice
         </p>

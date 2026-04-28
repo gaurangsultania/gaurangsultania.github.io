@@ -26,7 +26,7 @@ function PostRow({ post, index }) {
   const inner = (
     <div
       ref={ref}
-      className="reveal group py-6 border-b border-stone/30"
+      className="reveal group py-6 border-b border-dim/30"
       style={{ transitionDelay: `${index * 40}ms` }}
     >
       <div className="flex items-baseline justify-between gap-6">
