@@ -1,54 +1,143 @@
 import 'dotenv/config'
 import { Client } from '@notionhq/client'
-import { writeFileSync, mkdirSync } from 'fs'
+import { writeFileSync, mkdirSync, existsSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const DATA_DIR = join(__dirname, '..', 'src', 'data')
-const CASE_STUDIES_DIR = join(DATA_DIR, 'case-studies')
+const __dirname  = dirname(fileURLToPath(import.meta.url))
+const DATA_DIR   = join(__dirname, '..', 'src', 'data')
+const CASE_DIR   = join(DATA_DIR, 'case-studies')
+const IMAGES_DIR = join(__dirname, '..', 'public', 'assets', 'images')
 
-const notion = new Client({ auth: process.env.VITE_NOTION_TOKEN })
-const PROJECTS_DB_ID = process.env.VITE_PROJECTS_DB_ID
-const BLOG_DB_ID = process.env.VITE_BLOG_DB_ID
+const notion          = new Client({ auth: process.env.VITE_NOTION_TOKEN })
+const PROJECTS_DB_ID  = process.env.VITE_PROJECTS_DB_ID
+const BLOG_DB_ID      = process.env.VITE_BLOG_DB_ID
 
 // ─── Property helpers ──────────────────────────────────────────────────────────
 
 function getText(prop) {
   if (!prop) return ''
-  if (prop.type === 'title') return prop.title.map((t) => t.plain_text).join('')
-  if (prop.type === 'rich_text') return prop.rich_text.map((t) => t.plain_text).join('')
-  if (prop.type === 'select') return prop.select?.name ?? ''
+  if (prop.type === 'title')        return prop.title.map((t) => t.plain_text).join('')
+  if (prop.type === 'rich_text')    return prop.rich_text.map((t) => t.plain_text).join('')
+  if (prop.type === 'select')       return prop.select?.name ?? ''
   if (prop.type === 'multi_select') return prop.multi_select.map((s) => s.name)
-  if (prop.type === 'checkbox') return prop.checkbox
-  if (prop.type === 'number') return prop.number
-  if (prop.type === 'url') return prop.url ?? ''
-  if (prop.type === 'date') return prop.date?.start ?? ''
+  if (prop.type === 'checkbox')     return prop.checkbox
+  if (prop.type === 'number')       return prop.number
+  if (prop.type === 'url')          return prop.url ?? ''
+  if (prop.type === 'date')         return prop.date?.start ?? ''
   return ''
 }
 
 function toSlug(name) {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-// ─── Notion blocks → Markdown ──────────────────────────────────────────────────
+// ─── Fix 3: rich_text → Markdown (bold trailing-space edge case) ───────────────
+// WRONG: **TripTalk, **   RIGHT: **TripTalk,**
+// The space must live OUTSIDE the closing **, not inside it.
 
 function richText(fragments = []) {
   return fragments
     .map((t) => {
       let s = t.plain_text
       if (t.annotations?.code) s = `\`${s}\``
-      if (t.annotations?.bold) s = `**${s}**`
-      if (t.annotations?.italic) s = `*${s}*`
+      if (t.annotations?.bold) {
+        const core  = s.trimEnd()
+        const trail = s.slice(core.length)   // preserve any trailing whitespace
+        s = `**${core}**${trail}`
+      }
+      if (t.annotations?.italic)        s = `*${s}*`
       if (t.annotations?.strikethrough) s = `~~${s}~~`
       if (t.href) s = `[${s}](${t.href})`
       return s
     })
     .join('')
 }
+
+// ─── Fix 2: image downloading — Notion S3 URLs expire in 3600 s ───────────────
+
+function isS3Url(url) {
+  return Boolean(url && (url.includes('prod-files-secure.s3') || url.includes('X-Amz')))
+}
+
+function extFromUrl(url) {
+  try {
+    const p = new URL(url).pathname.split('.').pop().toLowerCase()
+    if (['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(p)) return p === 'jpeg' ? 'jpg' : p
+  } catch {}
+  return null
+}
+
+function extFromContentType(ct = '') {
+  if (ct.includes('jpeg') || ct.includes('jpg')) return 'jpg'
+  if (ct.includes('png'))  return 'png'
+  if (ct.includes('webp')) return 'webp'
+  if (ct.includes('gif'))  return 'gif'
+  return 'jpg'
+}
+
+async function downloadImage(blockId, url) {
+  // Return cached file if already downloaded (any extension)
+  for (const ext of ['jpg', 'png', 'webp', 'gif']) {
+    const p = join(IMAGES_DIR, `${blockId}.${ext}`)
+    if (existsSync(p)) return `/assets/images/${blockId}.${ext}`
+  }
+  try {
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    const ext      = extFromUrl(url) ?? extFromContentType(res.headers.get('content-type'))
+    const filename = `${blockId}.${ext}`
+    writeFileSync(join(IMAGES_DIR, filename), Buffer.from(await res.arrayBuffer()))
+    console.log(`[fetch-notion]     ↳ saved image ${filename}`)
+    return `/assets/images/${filename}`
+  } catch (err) {
+    console.warn(`[fetch-notion]   ⚠ image download failed (${blockId}): ${err.message}`)
+    return url  // fall back — better than a broken build
+  }
+}
+
+// ─── Fix 1: table blocks — rows require a separate children.list call ──────────
+
+async function fetchTableRows(blockId) {
+  const rows = []
+  let cursor
+  do {
+    const res = await notion.blocks.children.list({
+      block_id: blockId,
+      page_size: 100,
+      ...(cursor ? { start_cursor: cursor } : {}),
+    })
+    rows.push(...res.results)
+    cursor = res.has_more ? res.next_cursor : null
+  } while (cursor)
+  return rows
+}
+
+function tableToMarkdown(block) {
+  const rows      = block._rows ?? []
+  if (rows.length === 0) return ''
+
+  const hasHeader = block.table?.has_column_header ?? false
+  const colCount  = rows[0]?.table_row?.cells?.length ?? 0
+  if (colCount === 0) return ''
+
+  const separator  = '| ' + Array(colCount).fill('---').join(' | ') + ' |'
+  const renderRow  = (row) => {
+    const cells = row.table_row?.cells ?? []
+    return '| ' + cells.map((cell) => richText(cell).replace(/\|/g, '\\|') || ' ').join(' | ') + ' |'
+  }
+
+  const mdRows = rows.map(renderRow)
+
+  if (hasHeader) {
+    return [mdRows[0], separator, ...mdRows.slice(1)].join('\n') + '\n'
+  } else {
+    const emptyHeader = '| ' + Array(colCount).fill(' ').join(' | ') + ' |'
+    return [emptyHeader, separator, ...mdRows].join('\n') + '\n'
+  }
+}
+
+// ─── Block → Markdown ──────────────────────────────────────────────────────────
 
 function blockToMarkdown(block) {
   const { type } = block
@@ -62,15 +151,17 @@ function blockToMarkdown(block) {
     case 'paragraph': return text ? `${text}\n` : ''
     case 'bulleted_list_item': return `- ${text}`
     case 'numbered_list_item': return `1. ${text}`
-    case 'quote': return `> ${text}\n`
+    case 'quote':   return `> ${text}\n`
     case 'divider': return `---\n`
     case 'callout': return `> **${text}**\n`
     case 'code': {
       const lang = data.language ?? ''
       return `\`\`\`${lang}\n${text}\n\`\`\`\n`
     }
+    case 'table': return tableToMarkdown(block)
     case 'image': {
-      const url = data.type === 'external' ? data.external?.url : data.file?.url
+      // _localUrl is set by the enrichment pass if the URL was an S3 link
+      const url     = block._localUrl ?? (data.type === 'external' ? data.external?.url : data.file?.url)
       const caption = richText(data.caption ?? [])
       return url ? `![${caption}](${url})\n` : ''
     }
@@ -83,10 +174,12 @@ function blockToMarkdown(block) {
   }
 }
 
+// ─── Fetch page blocks + enrich (tables, images) in one pass ──────────────────
+
 async function fetchPageMarkdown(pageId) {
+  // 1. Fetch all top-level blocks
   const blocks = []
   let cursor
-
   do {
     const res = await notion.blocks.children.list({
       block_id: pageId,
@@ -97,9 +190,27 @@ async function fetchPageMarkdown(pageId) {
     cursor = res.has_more ? res.next_cursor : null
   } while (cursor)
 
+  // 2. Enrich table + image blocks (parallel)
+  await Promise.all(blocks.map(async (block) => {
+    // Fix 1 — fetch table rows
+    if (block.type === 'table') {
+      block._rows = await fetchTableRows(block.id)
+    }
+
+    // Fix 2 — download expiring S3 images
+    if (block.type === 'image') {
+      const d   = block.image ?? {}
+      const url = d.type === 'external' ? d.external?.url : d.file?.url
+      if (isS3Url(url)) {
+        block._localUrl = await downloadImage(block.id, url)
+      }
+    }
+  }))
+
+  // 3. Convert to markdown
   return blocks
     .map(blockToMarkdown)
-    .filter((l) => l !== '')
+    .filter(Boolean)
     .join('\n')
 }
 
@@ -110,25 +221,25 @@ async function fetchProjects() {
     database_id: PROJECTS_DB_ID,
     sorts: [
       { property: 'Featured', direction: 'descending' },
-      { property: 'Order', direction: 'ascending' },
+      { property: 'Order',    direction: 'ascending'  },
     ],
   })
 
   return res.results.map((page) => {
-    const p = page.properties
+    const p    = page.properties
     const name = getText(p.Name)
     return {
-      id: page.id,
-      slug: toSlug(name),
+      id:               page.id,
+      slug:             toSlug(name),
       name,
-      tagline: getText(p.Tagline),
-      category: getText(p.Category),
-      featured: getText(p.Featured),
-      link: getText(p.Link),
-      order: getText(p.Order),
-      videoURL: getText(p.VideoURL),
-      attachmentURL: getText(p.AttachmentURL),
-      caseStudyPageId: getText(p.CaseStudyPageId),
+      tagline:          getText(p.Tagline),
+      category:         getText(p.Category),
+      featured:         getText(p.Featured),
+      link:             getText(p.Link),
+      order:            getText(p.Order),
+      videoURL:         getText(p.VideoURL),
+      attachmentURL:    getText(p.AttachmentURL),
+      caseStudyPageId:  getText(p.CaseStudyPageId),
     }
   })
 }
@@ -145,13 +256,13 @@ async function fetchBlogPosts() {
   return res.results.map((page) => {
     const p = page.properties
     return {
-      id: page.id,
-      title: getText(p.Title ?? p.Name),
+      id:      page.id,
+      title:   getText(p.Title ?? p.Name),
       summary: getText(p.Summary),
-      date: getText(p.Date),
-      slug: getText(p.Slug),
-      link: getText(p.Link),
-      tags: getText(p.Tags) || [],
+      date:    getText(p.Date),
+      slug:    getText(p.Slug),
+      link:    getText(p.Link),
+      tags:    getText(p.Tags) || [],
     }
   })
 }
@@ -164,8 +275,9 @@ async function main() {
     process.exit(0)
   }
 
-  mkdirSync(DATA_DIR, { recursive: true })
-  mkdirSync(CASE_STUDIES_DIR, { recursive: true })
+  mkdirSync(DATA_DIR,   { recursive: true })
+  mkdirSync(CASE_DIR,   { recursive: true })
+  mkdirSync(IMAGES_DIR, { recursive: true })
 
   console.log('[fetch-notion] Fetching projects...')
   const projects = await fetchProjects()
@@ -180,7 +292,7 @@ async function main() {
         try {
           const markdown = await fetchPageMarkdown(p.caseStudyPageId)
           writeFileSync(
-            join(CASE_STUDIES_DIR, `${p.slug}.json`),
+            join(CASE_DIR, `${p.slug}.json`),
             JSON.stringify({ slug: p.slug, markdown }, null, 2)
           )
           console.log(`[fetch-notion]   ✓ ${p.name}`)
@@ -198,8 +310,8 @@ async function main() {
 }
 
 main().catch((err) => {
-  const isAuthError = err.code === 'unauthorized' || err.status === 401
-  if (isAuthError) {
+  const isAuth = err.code === 'unauthorized' || err.status === 401
+  if (isAuth) {
     console.warn('[fetch-notion] Invalid or missing Notion token — skipping fetch, using existing data files.')
     process.exit(0)
   }
