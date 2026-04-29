@@ -62,13 +62,71 @@ const mdComponents = {
       {children}
     </p>
   ),
-  ul: ({ children }) => <ul style={{ marginBottom: '1.2rem', paddingLeft: 0 }}>{children}</ul>,
-  ol: ({ children }) => <ol style={{ marginBottom: '1.2rem', paddingLeft: '1rem' }}>{children}</ol>,
+  // Lists — paddingLeft stacks naturally on each nesting level,
+  // listStyleType string marker keeps the design dash without flex hacks
+  // that break when a nested <ul> is included in children.
+  ul: ({ children }) => (
+    <ul className="font-mono text-stone" style={{
+      listStyleType: '"— "',
+      paddingLeft: '1.1rem',
+      marginBottom: '0.8rem',
+      marginTop: '0.25rem',
+    }}>
+      {children}
+    </ul>
+  ),
+  ol: ({ children }) => (
+    <ol className="font-mono text-stone" style={{
+      listStyleType: 'decimal',
+      paddingLeft: '1.4rem',
+      marginBottom: '0.8rem',
+      marginTop: '0.25rem',
+    }}>
+      {children}
+    </ol>
+  ),
   li: ({ children }) => (
-    <li className="font-mono text-stone" style={{ fontSize: '13px', lineHeight: 1.85, marginBottom: '0.4rem', letterSpacing: '0.02em', listStyle: 'none', display: 'flex', gap: '0.75rem' }}>
-      <span className="text-stone" style={{ userSelect: 'none' }}>—</span>
-      <span>{children}</span>
+    <li style={{ fontSize: '13px', lineHeight: 1.85, marginBottom: '0.25rem', letterSpacing: '0.02em', paddingLeft: '0.2rem' }}>
+      {children}
     </li>
+  ),
+  // Tables — 1px borders, mono 12px, matches dark palette
+  table: ({ children }) => (
+    <div style={{ overflowX: 'auto', margin: '1.5rem 0' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: '"IBM Plex Mono", monospace', fontSize: '12px' }}>
+        {children}
+      </table>
+    </div>
+  ),
+  thead: ({ children }) => <thead>{children}</thead>,
+  tbody: ({ children }) => <tbody>{children}</tbody>,
+  tr: ({ children }) => <tr>{children}</tr>,
+  th: ({ children }) => (
+    <th style={{
+      border: '1px solid #2a2825',
+      padding: '7px 12px',
+      textAlign: 'left',
+      color: '#e8e4dc',
+      fontWeight: 500,
+      background: '#131210',
+      fontSize: '11px',
+      letterSpacing: '0.06em',
+      whiteSpace: 'nowrap',
+    }}>
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td style={{
+      border: '1px solid #2a2825',
+      padding: '7px 12px',
+      color: '#a09a94',
+      fontSize: '12px',
+      lineHeight: 1.6,
+      verticalAlign: 'top',
+    }}>
+      {children}
+    </td>
   ),
   blockquote: ({ children }) => (
     <blockquote style={{ borderLeft: '1px solid #3a3832', paddingLeft: '1rem', margin: '1.5rem 0' }}>
