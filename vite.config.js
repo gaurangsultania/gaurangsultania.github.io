@@ -4,4 +4,14 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   base: '/',
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          three: ['three', '@react-three/fiber', '@react-three/postprocessing'],
+          vendor: ['react', 'react-dom', 'framer-motion', 'gsap'],
+        },
+      },
+    },
+  },
 })
