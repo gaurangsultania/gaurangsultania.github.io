@@ -72,8 +72,17 @@ export default function Portal({ progressRef, particleCount = 650 }) {
     return { positions, velocities }
   }, [particleCount])
 
+  // Referentially stable — R3F diffs uniforms by reference; a fresh literal
+  // on re-render would disconnect the compiled program and freeze uOpen/uTime.
+  const slitUniforms = useMemo(() => ({ uTime: { value: 0 }, uOpen: { value: 0 } }), [])
+  const raysUniforms = useMemo(() => ({ uTime: { value: 0 }, uOpen: { value: 0 } }), [])
+  const glowMap = useMemo(makeGlowTexture, [])
+
   useFrame((state, delta) => {
-    const open = openFrom(progressRef.current.value)
+    // fade the tear away once the camera has passed through it (z < ~1.5),
+    // so beyond the crossing only the star field of the new universe remains
+    const crossFade = THREE.MathUtils.clamp((state.camera.position.z + 2) / 3.5, 0, 1)
+    const open = openFrom(progressRef.current.value) * crossFade
     const t = state.clock.elapsedTime
 
     if (slitMat.current) {
@@ -123,7 +132,7 @@ export default function Portal({ progressRef, particleCount = 650 }) {
           ref={slitMat}
           vertexShader={slitVertex}
           fragmentShader={slitFragment}
-          uniforms={{ uTime: { value: 0 }, uOpen: { value: 0 } }}
+          uniforms={slitUniforms}
           transparent
           depthWrite={false}
           blending={THREE.AdditiveBlending}
@@ -138,7 +147,7 @@ export default function Portal({ progressRef, particleCount = 650 }) {
           ref={raysMat}
           vertexShader={slitVertex}
           fragmentShader={raysFragment}
-          uniforms={{ uTime: { value: 0 }, uOpen: { value: 0 } }}
+          uniforms={raysUniforms}
           transparent
           depthWrite={false}
           blending={THREE.AdditiveBlending}
@@ -149,7 +158,7 @@ export default function Portal({ progressRef, particleCount = 650 }) {
       <sprite scale={[26, 30, 1]}>
         <spriteMaterial
           ref={glowMat}
-          map={useMemo(makeGlowTexture, [])}
+          map={glowMap}
           transparent
           opacity={0}
           depthWrite={false}
@@ -158,7 +167,7 @@ export default function Portal({ progressRef, particleCount = 650 }) {
       </sprite>
 
       {/* dust pulled toward the light */}
-      <points>
+      <points key={particleCount}>
         <bufferGeometry ref={particlesGeo}>
           <bufferAttribute attach="attributes-position" count={particleCount} array={positions} itemSize={3} />
         </bufferGeometry>

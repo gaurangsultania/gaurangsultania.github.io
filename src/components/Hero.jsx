@@ -12,7 +12,7 @@ const item = {
 
 export default function Hero() {
   return (
-    <section className="min-h-screen flex flex-col justify-center px-6 max-w-6xl mx-auto">
+    <section className="relative min-h-screen flex flex-col justify-center px-6 max-w-6xl mx-auto">
       <motion.div
         variants={container}
         initial="hidden"

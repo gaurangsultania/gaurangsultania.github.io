@@ -21,7 +21,9 @@ class AmbientAudio {
 
   async toggle() {
     if (!this.started) {
-      await this._start()
+      // memoized so rapid double-clicks can't build two audio graphs
+      this._starting ||= this._start()
+      await this._starting
       return this.playing
     }
     if (this.playing) {
@@ -32,6 +34,16 @@ class AmbientAudio {
       this.playing = true
     }
     return this.playing
+  }
+
+  // hard off-ramp for paths where the toggle button is unreachable
+  // (e.g. the user enables prefers-reduced-motion mid-session)
+  async mute() {
+    if (this._starting) await this._starting
+    if (this.started && this.playing) {
+      await this.ctx.suspend()
+      this.playing = false
+    }
   }
 
   async _start() {

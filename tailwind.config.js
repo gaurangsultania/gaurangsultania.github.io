@@ -11,7 +11,7 @@ export default {
         surface: '#111111',
         border: '#1f1f1f',
         accent: '#e5e5e5',
-        muted: '#6b6b6b',
+        muted: '#7a7a7a', // 4.8:1 on the scene background — WCAG AA
       },
     },
   },
