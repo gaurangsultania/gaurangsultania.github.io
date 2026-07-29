@@ -1,6 +1,7 @@
 [
   {
     "id": "34fb3620-ce21-81f8-81d2-cbfcee7c9066",
+    "slug": "chataak",
     "name": "Chataak",
     "tagline": "Connecting brands with the right influencers at scale",
     "category": [
@@ -9,10 +10,14 @@
     ],
     "featured": true,
     "link": "",
-    "order": 1
+    "order": 1,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": "29bb3620ce218099af16dee3547157c2"
   },
   {
     "id": "34fb3620-ce21-8164-b54d-db4f10b962a1",
+    "slug": "proven-ai",
     "name": "Proven AI",
     "tagline": "Rethinking how talent proves itself",
     "category": [
@@ -20,10 +25,14 @@
     ],
     "featured": true,
     "link": "",
-    "order": 2
+    "order": 2,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": "2a6b3620ce21807dbfe9d27c2f2a0832"
   },
   {
     "id": "34fb3620-ce21-8132-a9ef-d10a7b9f8999",
+    "slug": "nothing-frame-01-in-app-experience",
     "name": "Nothing Frame 01 — In-App Experience",
     "tagline": "Mixed reality eyewear meets ambient computing",
     "category": [
@@ -32,10 +41,61 @@
     ],
     "featured": true,
     "link": "https://app.getrocket.com/share/placeholder",
-    "order": 3
+    "order": 3,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": "34fb3620ce218132a9efd10a7b9f8999"
+  },
+  {
+    "id": "34fb3620-ce21-819e-b68b-d5cb15762c75",
+    "slug": "aarogya-sahayak",
+    "name": "Aarogya Sahayak",
+    "tagline": "Digital healthcare for underserved India",
+    "category": [
+      "Prototype",
+      "Strategy"
+    ],
+    "featured": true,
+    "link": "https://app.getrocket.com/share/placeholder",
+    "order": 4,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": "34fb3620ce21819eb68bd5cb15762c75"
+  },
+  {
+    "id": "34fb3620-ce21-81a1-8e10-faac0c6e49b6",
+    "slug": "teardown-instagram-threads",
+    "name": "Teardown — Instagram Threads",
+    "tagline": "How Meta built a Twitter killer in 5 days",
+    "category": [
+      "Teardown",
+      "UX"
+    ],
+    "featured": true,
+    "link": "",
+    "order": 5,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": "29eb3620ce2180febd96dd854e2e290b"
+  },
+  {
+    "id": "34fb3620-ce21-8101-a193-e9562cabdbd2",
+    "slug": "make-my-trip-map-based-ux",
+    "name": "Make My Trip — Map Based UX",
+    "tagline": "Reimagining travel search through spatial context",
+    "category": [
+      "UX"
+    ],
+    "featured": true,
+    "link": "",
+    "order": 6,
+    "videoURL": "",
+    "attachmentURL": "https://gaurangsultania.github.io/assets/MakeMyTrip - Map Based UI.pdf",
+    "caseStudyPageId": "29eb3620ce2180ea9789fdb9da1d45a6"
   },
   {
     "id": "34fb3620-ce21-8180-9553-fe84fa2337b2",
+    "slug": "pgp-resume-extractor",
     "name": "PGP Resume Extractor",
     "tagline": "A Chrome extension built for ISB students",
     "category": [
@@ -43,41 +103,9 @@
     ],
     "featured": true,
     "link": "",
-    "order": 7
-  },
-  {
-    "id": "34fb3620-ce21-819e-b68b-d5cb15762c75",
-    "name": "Aarogya Sahayak",
-    "tagline": "Digital healthcare for underserved India",
-    "category": [
-      "Prototype",
-      "Strategy"
-    ],
-    "featured": false,
-    "link": "https://app.getrocket.com/share/placeholder",
-    "order": 4
-  },
-  {
-    "id": "34fb3620-ce21-81a1-8e10-faac0c6e49b6",
-    "name": "Teardown — Instagram Threads",
-    "tagline": "How Meta built a Twitter killer in 5 days",
-    "category": [
-      "Teardown",
-      "UX"
-    ],
-    "featured": false,
-    "link": "",
-    "order": 5
-  },
-  {
-    "id": "34fb3620-ce21-8101-a193-e9562cabdbd2",
-    "name": "Make My Trip — Map Based UX",
-    "tagline": "Reimagining travel search through spatial context",
-    "category": [
-      "UX"
-    ],
-    "featured": false,
-    "link": "",
-    "order": 6
+    "order": 7,
+    "videoURL": "",
+    "attachmentURL": "",
+    "caseStudyPageId": "29cb3620ce2180a998ead87a2b906bd0"
   }
 ]

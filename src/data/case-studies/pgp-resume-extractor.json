@@ -1,0 +1,4 @@
+{
+  "slug": "pgp-resume-extractor",
+  "markdown": "*Built using Windsurf*\n\n![](/assets/images/29eb3620-ce21-8088-88da-e05578763fe5.png)\n\nBuilt a **Chrome extension** ([Link](https://chromewebstore.google.com/detail/resume-pdf-extractor-rela/fljeffmapkjdmioaifehikepmikepgin)) using **Windsurf** to enable seamless resume downloading, cataloging, and retrieval from ISB’s placement preparation portal; unlocking a previously unavailable capability for students to independently download and organize resumes efficiently.\n\nUsed [Clueso](http://clueso.io/) for creating interactive demo video:\n"
+}

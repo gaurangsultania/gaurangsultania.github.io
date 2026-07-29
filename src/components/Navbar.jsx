@@ -1,81 +1,61 @@
-import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
 
 const links = [
-  { label: 'Projects', href: '#projects' },
-  { label: 'Blog', href: '#blog' },
+  { label: 'Work',    href: '#work' },
+  { label: 'Writing', href: '#writing' },
+  { label: 'Now',     href: '#now' },
   { label: 'Contact', href: '#contact' },
+  // Music is scaffolded but not live yet
+  { label: 'Music',   href: '#music', comingSoon: true },
 ]
 
 export default function Navbar() {
-  const [scrolled, setScrolled] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 40)
-    window.addEventListener('scroll', onScroll)
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  const [open, setOpen] = useState(false)
 
   return (
-    <header
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-bg/90 backdrop-blur border-b border-border' : 'bg-transparent'
-      }`}
-    >
-      <nav className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-        <a href="#" className="text-white font-bold text-lg tracking-tight">
-          GS
-        </a>
-
-        {/* Desktop */}
-        <ul className="hidden md:flex items-center gap-8">
-          {links.map((l) => (
-            <li key={l.href}>
-              <a
-                href={l.href}
-                className="text-muted hover:text-white text-sm font-medium transition-colors"
-              >
-                {l.label}
-              </a>
-            </li>
-          ))}
-        </ul>
-
-        {/* Mobile hamburger */}
-        <button
-          className="md:hidden text-muted hover:text-white transition-colors"
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Toggle menu"
-        >
-          <span className="block w-5 h-px bg-current mb-1.5 transition-all" />
-          <span className="block w-5 h-px bg-current mb-1.5 transition-all" />
-          <span className="block w-5 h-px bg-current transition-all" />
-        </button>
+    <>
+      {/* Desktop nav — fixed top-right */}
+      <nav className="fixed top-0 right-0 z-50 hidden md:flex items-center gap-8 px-10 py-7">
+        {links.map((l) => (
+          <a
+            key={l.label}
+            href={l.href}
+            className={`nav-link${l.comingSoon ? ' nav-coming-soon' : ''}`}
+            tabIndex={l.comingSoon ? -1 : undefined}
+            aria-hidden={l.comingSoon ? 'true' : undefined}
+          >
+            {l.label}
+          </a>
+        ))}
       </nav>
 
-      {/* Mobile menu */}
-      <AnimatePresence>
-        {menuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            className="md:hidden bg-surface border-b border-border px-6 pb-4"
-          >
-            {links.map((l) => (
-              <a
-                key={l.href}
-                href={l.href}
-                onClick={() => setMenuOpen(false)}
-                className="block py-3 text-muted hover:text-white text-sm font-medium border-b border-border last:border-0 transition-colors"
-              >
-                {l.label}
-              </a>
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </header>
+      {/* Mobile hamburger */}
+      <button
+        className="fixed top-6 right-6 z-[110] md:hidden"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Toggle navigation"
+        style={{ color: '#6b6560', fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer' }}
+      >
+        {open ? '✕' : '☰'}
+      </button>
+
+      {/* Mobile full-screen overlay */}
+      {open && (
+        <div className="nav-overlay md:hidden">
+          {links.map((l) => (
+            <a
+              key={l.label}
+              href={l.href}
+              onClick={() => setOpen(false)}
+              className={`nav-link${l.comingSoon ? ' nav-coming-soon' : ''}`}
+              style={{ fontSize: '18px', letterSpacing: '0.12em' }}
+              tabIndex={l.comingSoon ? -1 : undefined}
+            >
+              {l.label}
+            </a>
+          ))}
+        </div>
+      )}
+    </>
   )
 }
