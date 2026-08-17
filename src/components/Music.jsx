@@ -26,14 +26,14 @@ export default function Music() {
         {/* SoundCloud / Spotify iframe — swap src when ready */}
         <iframe
           title="music embed"
-          src="about:blank"
+          src="https://w.soundcloud.com/player/?visual=true&url=https%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F687628549&show_artwork=true"
           style={{
             width: '100%',
             height: '166px',
             border: 'none',
             opacity: 0.6,
           }}
-          allow="autoplay"
+          allow="encrypted-media *; autoplay"
         />
       </div>
     </section>
