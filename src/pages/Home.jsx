@@ -8,7 +8,7 @@ import Now from '../components/Now'
 import Contact from '../components/Contact'
 import { useNotion } from '../hooks/useNotion'
 // MUSIC_SECTION — uncomment the line below when ready
-// import Music from '../components/Music'
+import Music from '../components/Music'
 
 export default function Home() {
   const { projects, posts, loading } = useNotion()
