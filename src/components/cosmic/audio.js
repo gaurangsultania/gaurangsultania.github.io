@@ -15,11 +15,13 @@ class AmbientAudio {
     this.master = null
     this.playing = false
     this.started = false
+    this.disabled = true // Set to true when SoundCloud embed is present
     this.bands = { bass: 0, mid: 0, high: 0 }
     this._freq = null
   }
 
   async toggle() {
+    if (this.disabled) return false // Skip audio if disabled
     if (!this.started) {
       // memoized so rapid double-clicks can't build two audio graphs
       this._starting ||= this._start()

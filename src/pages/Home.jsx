@@ -41,6 +41,8 @@ export default function Home() {
               <div className="border-t border-border max-w-6xl mx-auto" />
               <Blog posts={posts} />
               <div className="border-t border-border max-w-6xl mx-auto" />
+              <Music />
+              <div className="border-t border-border max-w-6xl mx-auto" />
               <Now />
               <div className="border-t border-border max-w-6xl mx-auto" />
               <Contact />
