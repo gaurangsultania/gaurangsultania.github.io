@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { journey, doorBase, doorYaw, DOOR_W, DOOR_H } from './journey'
+import { ambient } from './audio'
 
 // The door at the end of the road: an arched slab standing alone in space,
 // light leaking around its edges. Behind it is a pane of warm light; the slab
@@ -169,8 +170,10 @@ export default function Door() {
       panelMat.current.uniforms.uHover.value = hover
       panelMat.current.uniforms.uOpen.value = open
     }
-    if (spillMat.current) spillMat.current.uniforms.uOpen.value = 0.12 + hover * 0.15 + open * 0.9
-    if (glowMat.current) glowMat.current.opacity = 0.08 + hover * 0.06 + open * 0.5
+    // the threshold breathes with the bass
+    const bass = ambient.bands.bass
+    if (spillMat.current) spillMat.current.uniforms.uOpen.value = 0.12 + hover * 0.15 + open * 0.9 + bass * 0.18
+    if (glowMat.current) glowMat.current.opacity = 0.08 + hover * 0.06 + open * 0.5 + bass * 0.08
   })
 
   return (

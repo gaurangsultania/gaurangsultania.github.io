@@ -10,6 +10,7 @@ import * as THREE from 'three'
 export const EYE = 1.5 // camera height above the path surface
 export const DOOR_W = 3.2
 export const DOOR_H = 5.6
+export const PULSE_SLOTS = 6
 
 export const curve = new THREE.CatmullRomCurve3(
   [
@@ -57,6 +58,18 @@ export const journey = {
   cameraSnap: false,
   // DOM hit area laid over the door's projected rectangle
   hitEl: null,
+  // recent bass hits, each a wave of light running down the road:
+  // t = clock time it landed, u = where on the road it started, a = strength
+  pulses: Array.from({ length: PULSE_SLOTS }, () => ({ t: -100, u: 0, a: 0 })),
+  pulseNext: 0,
+}
+
+export function addPulse(t, u, a) {
+  const slot = journey.pulses[journey.pulseNext]
+  slot.t = t
+  slot.u = u
+  slot.a = a
+  journey.pulseNext = (journey.pulseNext + 1) % PULSE_SLOTS
 }
 
 const side = new THREE.Vector3()

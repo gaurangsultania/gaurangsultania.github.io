@@ -6,6 +6,8 @@ import Scene from './Scene'
 import { attachInteraction } from './interaction'
 import { journey } from './journey'
 import Hero from '../Hero'
+import SoundToggle from './SoundToggle'
+import { ambient } from './audio'
 import { Glass } from '../glass/LiquidGlass'
 import { lockScroll, scrollToTarget } from '../../lib/smoothScroll'
 
@@ -41,7 +43,14 @@ export default function CosmicLanding({ opened, onOpen, onEntered, reduced }) {
   const busy = useRef(false)
   const [isMobile] = useState(() => window.innerWidth < 768)
 
-  useEffect(() => (reduced ? undefined : attachInteraction()), [reduced])
+  useEffect(() => {
+    // the switch unmounts with the scene — don't strand audio playing
+    if (reduced) {
+      ambient.mute()
+      return
+    }
+    return attachInteraction()
+  }, [reduced])
 
   useLayoutEffect(() => {
     journey.opened = opened
@@ -220,17 +229,20 @@ export default function CosmicLanding({ opened, onOpen, onEntered, reduced }) {
         </div>
       </div>
 
-      {/* the light — portalled so it sits above the navbar */}
+      {/* the light and the sound switch — portalled so they sit above the navbar */}
       {createPortal(
-        <div
-          ref={flashRef}
-          className="fixed inset-0 z-[60] pointer-events-none"
-          style={{
-            opacity: 0,
-            visibility: 'hidden',
-            background: 'radial-gradient(ellipse at 50% 55%, #fffaf0 0%, #fbe9c9 55%, #e9cf9c 100%)',
-          }}
-        />,
+        <>
+          <SoundToggle />
+          <div
+            ref={flashRef}
+            className="fixed inset-0 z-[60] pointer-events-none"
+            style={{
+              opacity: 0,
+              visibility: 'hidden',
+              background: 'radial-gradient(ellipse at 50% 55%, #fffaf0 0%, #fbe9c9 55%, #e9cf9c 100%)',
+            }}
+          />
+        </>,
         document.body
       )}
     </>

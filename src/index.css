@@ -323,6 +323,22 @@
     0 2px 8px rgba(0, 0, 0, 0.25);
 }
 
+.sound-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+}
+
+.sound-bars > span {
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: currentColor;
+  transform: scaleY(0.25);
+  transform-origin: bottom;
+}
+
 .lg-caption {
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Inter, system-ui, sans-serif;
   font-size: 13px;

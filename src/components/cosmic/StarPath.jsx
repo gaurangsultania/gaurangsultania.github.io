@@ -1,19 +1,29 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { curve, sideAt, journey, camU, EYE } from './journey'
+import { curve, sideAt, journey, camU, EYE, PULSE_SLOTS } from './journey'
+import { ambient } from './audio'
 
 // The stardust road. Each particle owns two positions: a loose scatter in the
 // sky and a seat on the winding path. A front runs a little ahead of the
 // camera: stars behind it have settled into the road, stars beyond it are
 // still sky, so the road keeps assembling itself just ahead of the visitor.
-// A slow pulse of light runs along it toward the door.
+// A slow pulse of light runs along it toward the door. With the soundtrack
+// on, every bass hit adds a brighter wave that starts under the visitor's
+// feet and races to the door; overall bass swells the road and the highs
+// make it sparkle.
 
 const vertexShader = /* glsl */ `
   uniform float uTime;
   uniform float uFront;
   uniform float uDoor;
   uniform float uLevel;
+  uniform float uBass;
+  uniform float uHigh;
+  uniform float uMusic;
+  uniform float uPulseT[${PULSE_SLOTS}];
+  uniform float uPulseU[${PULSE_SLOTS}];
+  uniform float uPulseA[${PULSE_SLOTS}];
   uniform float uPixelRatio;
   attribute vec3 aScatter;
   attribute float aU;
@@ -32,21 +42,34 @@ const vertexShader = /* glsl */ `
     // settled stars still breathe a little
     pos.y += sin(uTime * 0.8 + aSeed * 40.0) * 0.04 * g;
 
+    // a wave of light running toward the door (quieter once music leads)
+    float wave = pow(0.5 + 0.5 * sin(aU * 90.0 - uTime * 2.2), 8.0) * (1.0 - uMusic * 0.6);
+    float sparkleAmp = 0.25 + uHigh * 0.5;
+    float sparkle = (1.0 - sparkleAmp) + sparkleAmp * sin(uTime * (1.5 + aSeed * 3.0 + uHigh * 4.0) + aSeed * 60.0);
+
+    // beat waves: each front runs from where it started toward the door, fading as it goes
+    float beat = 0.0;
+    for (int i = 0; i < ${PULSE_SLOTS}; i++) {
+      float age = uTime - uPulseT[i];
+      if (age < 0.0 || age > 4.0) continue;
+      float front = uPulseU[i] + age * 0.11;
+      float d = (aU - front) / (0.014 + age * 0.005);
+      beat += exp(-d * d) * uPulseA[i] * exp(-age * 0.6);
+    }
+    beat *= g;
+    wave += beat * 2.0;
+    pos.y += beat * 0.08;
     vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+
     float dist = length(mv.xyz);
-
-    // a wave of light running toward the door
-    float wave = pow(0.5 + 0.5 * sin(aU * 90.0 - uTime * 2.2), 8.0);
-    float sparkle = 0.75 + 0.25 * sin(uTime * (1.5 + aSeed * 3.0) + aSeed * 60.0);
-
-    float size = (0.4 + aEdge * 0.45 + wave * 0.5) * (0.6 + 0.4 * g);
+    float size = (0.4 + aEdge * 0.45 + wave * 0.5 + uBass * 0.25) * (0.6 + 0.4 * g);
     gl_PointSize = max(min(size * uPixelRatio * 75.0 / dist, 6.0 * uPixelRatio), 1.2);
 
     float near = smoothstep(0.8, 3.0, dist);
     float fog = exp(-dist * 0.018);
     // the door's light washes the last stretch of road
     float doorWash = smoothstep(0.82, 1.0, aU) * uDoor;
-    vAlpha = (0.45 + aEdge * 0.75 + wave * 0.6 + doorWash) * sparkle * near * fog * (0.3 + 0.7 * g) * uLevel;
+    vAlpha = (0.45 + aEdge * 0.75 + wave * 0.6 + doorWash + uBass * 0.35) * sparkle * near * fog * (0.3 + 0.7 * g) * uLevel;
 
     // cool starlight near the start, warming to gold toward the door
     vec3 cool = vec3(0.85, 0.9, 1.0);
@@ -79,6 +102,12 @@ export default function StarPath({ count = 2600 }) {
       uFront: { value: 0 },
       uDoor: { value: 0 },
       uLevel: { value: 1 },
+      uBass: { value: 0 },
+      uHigh: { value: 0 },
+      uMusic: { value: 0 },
+      uPulseT: { value: new Array(PULSE_SLOTS).fill(-100) },
+      uPulseU: { value: new Array(PULSE_SLOTS).fill(0) },
+      uPulseA: { value: new Array(PULSE_SLOTS).fill(0) },
       uPixelRatio: { value: Math.min(window.devicePixelRatio, 1.75) },
     }),
     []
@@ -132,9 +161,17 @@ export default function StarPath({ count = 2600 }) {
     return g
   }, [count])
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!material.current) return
     const u = material.current.uniforms
+    u.uBass.value = ambient.bands.bass
+    u.uHigh.value = ambient.bands.high
+    u.uMusic.value = THREE.MathUtils.damp(u.uMusic.value, ambient.playing ? 1 : 0, 1.5, delta)
+    journey.pulses.forEach((pl, i) => {
+      u.uPulseT.value[i] = pl.t
+      u.uPulseU.value[i] = pl.u
+      u.uPulseA.value[i] = pl.a
+    })
     u.uTime.value = state.clock.elapsedTime
     // the front leads the camera by a stretch; once the door is in sight the whole road is laid
     const lead = camU(journey.progress.value) + 0.3 + journey.progress.value * 0.3

@@ -6,7 +6,7 @@ import StarPath from './StarPath'
 import Door from './Door'
 import { ambient } from './audio'
 import { interaction } from './interaction'
-import { journey, curve, CAM_STOP, camU, doorCenter, doorFacing, DOOR_W, DOOR_H } from './journey'
+import { journey, addPulse, curve, CAM_STOP, camU, doorCenter, doorFacing, DOOR_W, DOOR_H } from './journey'
 
 // One continuous camera:
 //   walk    — rides the winding curve at eye height, looking a little ahead,
@@ -49,6 +49,9 @@ function CameraRig() {
     const p = pr.value
     const t = state.clock.elapsedTime
     const push = journey.door.push
+
+    // a bass hit sends a wave down the road, starting just behind the camera
+    if (ambient.onset) addPulse(t, camU(p) - 0.015, ambient.onsetStrength)
 
     // --- walk ---
     const u = camU(p)
