@@ -11,7 +11,7 @@ import { lockScroll, scrollToTarget } from '../../lib/smoothScroll'
 
 // The landing journey.
 //
-// A 520vh runway scrubs the walk: stars gather into a winding road and the
+// A 280vh runway scrubs the walk: stars gather into a winding road and the
 // camera follows it to a door standing alone at its end. The page ends there
 // until the door is opened — by the button, or by clicking the door itself.
 // Opening plays one timed sequence (swing, push through, warm white-out),
@@ -161,7 +161,7 @@ export default function CosmicLanding({ opened, onOpen, onEntered, reduced }) {
         </Canvas>
       </div>
 
-      <div ref={wrapRef} className="relative h-[520vh]">
+      <div ref={wrapRef} className="relative h-[280vh]">
         <div className="sticky top-0 h-screen overflow-hidden">
           {/* the name, before the walk begins */}
           <div
@@ -183,7 +183,7 @@ export default function CosmicLanding({ opened, onOpen, onEntered, reduced }) {
           </div>
 
           <div ref={hintRef} className="absolute bottom-10 inset-x-0 flex justify-center">
-            <Glass size="sm" onClick={() => scrollToTarget(window.innerHeight * 1.4)}>
+            <Glass size="sm" onClick={() => scrollToTarget(window.innerHeight * 0.9)}>
               Scroll to begin <span aria-hidden="true">↓</span>
             </Glass>
           </div>
@@ -213,8 +213,8 @@ export default function CosmicLanding({ opened, onOpen, onEntered, reduced }) {
             >
               Open the door
             </Glass>
-            <span className="font-mono text-stone" style={{ fontSize: '10px', letterSpacing: '0.2em' }}>
-              the work is on the other side
+            <span className="lg-caption">
+              The work is on the other side
             </span>
           </div>
         </div>

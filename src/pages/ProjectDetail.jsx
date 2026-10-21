@@ -167,7 +167,7 @@ export default function ProjectDetail() {
           project not found.
         </p>
         <Glass as={Link} to="/" state={{ section: 'work' }} size="sm">
-          ← all work
+          ← All work
         </Glass>
       </div>
     )
@@ -182,7 +182,7 @@ export default function ProjectDetail() {
       {/* Back link */}
       <div className="content-wrap" style={{ paddingTop: '3rem' }}>
         <Glass as={Link} to="/" state={{ section: 'work' }} size="sm">
-          ← work
+          ← Work
         </Glass>
       </div>
 
@@ -261,7 +261,7 @@ export default function ProjectDetail() {
       <div className="content-wrap" style={{ paddingBottom: '4rem' }}>
         <div className="divider" style={{ marginBottom: '2rem' }} />
         <Glass as={Link} to="/" state={{ section: 'work' }} size="sm">
-          ← work
+          ← Work
         </Glass>
       </div>
     </div>

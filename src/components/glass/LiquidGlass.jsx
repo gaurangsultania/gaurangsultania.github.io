@@ -2,15 +2,15 @@ import { forwardRef, useCallback, useEffect, useId, useRef, useState } from 'rea
 
 // Liquid glass.
 //
-// Every surface gets the same layered material in CSS (index.css, `.lg`):
-// a frosted, saturated backdrop, a bright top lip, a warm bottom bounce, a
-// gradient rim and a specular highlight that follows the pointer. Presses
-// squash the shape and release it on an overshooting spring, like a drop.
+// Every surface gets the same material in CSS (index.css, `.lg`), modelled
+// on Apple's Liquid Glass: a lightly frosted neutral pane, a hairline
+// specular rim, a soft lift shadow. On press the pane swells on a spring and
+// glows from the point of contact.
 //
 // On Chromium, which accepts SVG filters in `backdrop-filter`, the backdrop
 // is also refracted: a displacement map generated for the element's exact
 // size bends what sits behind its rim inward, the way a thick lens does,
-// with the colour channels split slightly at the edge. Other browsers keep
+// with the colour channels split very slightly at the edge. Other browsers keep
 // the frosted material only.
 
 const REFRACTS =
@@ -112,9 +112,9 @@ function useLiquidFilter(ref, { radius, bezel = 14, scale = 38, enabled = true }
         <feImage href={map.url} x="0" y="0" width={map.w} height={map.h} preserveAspectRatio="none" result="map" />
         <feDisplacementMap in="SourceGraphic" in2="map" scale={scale} xChannelSelector="R" yChannelSelector="G" result="dr" />
         <feColorMatrix in="dr" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r" />
-        <feDisplacementMap in="SourceGraphic" in2="map" scale={scale * 0.9} xChannelSelector="R" yChannelSelector="G" result="dg" />
+        <feDisplacementMap in="SourceGraphic" in2="map" scale={scale * 0.96} xChannelSelector="R" yChannelSelector="G" result="dg" />
         <feColorMatrix in="dg" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g" />
-        <feDisplacementMap in="SourceGraphic" in2="map" scale={scale * 0.8} xChannelSelector="R" yChannelSelector="G" result="db" />
+        <feDisplacementMap in="SourceGraphic" in2="map" scale={scale * 0.92} xChannelSelector="R" yChannelSelector="G" result="db" />
         <feColorMatrix in="db" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b" />
         <feBlend in="r" in2="g" mode="screen" result="rg" />
         <feBlend in="rg" in2="b" mode="screen" />
@@ -122,7 +122,7 @@ function useLiquidFilter(ref, { radius, bezel = 14, scale = 38, enabled = true }
     </svg>
   )
 
-  const backdrop = `url(#${id}) blur(1.5px) saturate(1.7) brightness(1.08)`
+  const backdrop = `url(#${id}) blur(5px) saturate(1.8) brightness(1.04)`
   return { filterStyle: { backdropFilter: backdrop }, svg }
 }
 
@@ -137,8 +137,8 @@ function usePointerSheen(ref) {
     el.style.setProperty('--gx', `${x * 100}%`)
     el.style.setProperty('--gy', `${y * 100}%`)
     // lean a couple of pixels toward the pointer
-    el.style.setProperty('--tx', `${(x - 0.5) * 4}px`)
-    el.style.setProperty('--ty', `${(y - 0.5) * 3}px`)
+    el.style.setProperty('--tx', `${(x - 0.5) * 2}px`)
+    el.style.setProperty('--ty', `${(y - 0.5) * 1.5}px`)
   }, [ref])
 
   const onPointerLeave = useCallback(() => {
@@ -172,8 +172,8 @@ export const Glass = forwardRef(function Glass(
   const ref = useRef(null)
   const { filterStyle, svg } = useLiquidFilter(ref, {
     radius,
-    bezel: size === 'lg' ? 18 : 12,
-    scale: size === 'lg' ? 46 : 32,
+    bezel: size === 'lg' ? 20 : 14,
+    scale: size === 'lg' ? 56 : 40,
     enabled: refract,
   })
   const sheen = usePointerSheen(ref)

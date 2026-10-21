@@ -16,8 +16,8 @@ function useReveal(ref) {
 
 const contactLinks = [
   { label: 'gaurangsultania@gmail.com', href: 'mailto:gaurangsultania@gmail.com' },
-  { label: 'linkedin',                  href: 'https://linkedin.com/in/gaurangsultania' },
-  { label: 'github',                    href: 'https://github.com/gaurangsultania' },
+  { label: 'LinkedIn',                  href: 'https://linkedin.com/in/gaurangsultania' },
+  { label: 'GitHub',                    href: 'https://github.com/gaurangsultania' },
 ]
 
 export default function Contact() {
@@ -47,7 +47,6 @@ export default function Contact() {
                 href={l.href}
                 target={l.href.startsWith('mailto') ? undefined : '_blank'}
                 rel="noopener noreferrer"
-                style={{ textTransform: 'none', letterSpacing: '0.06em', fontSize: '12px' }}
               >
                 {l.label}
               </Glass>
