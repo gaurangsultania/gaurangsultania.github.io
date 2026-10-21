@@ -1,117 +1,105 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal, flushSync } from 'react-dom'
 import { Canvas } from '@react-three/fiber'
+import { gsap } from 'gsap'
 import Scene from './Scene'
-import { ambient } from './audio'
 import { attachInteraction } from './interaction'
+import { journey } from './journey'
 import Hero from '../Hero'
+import { Glass } from '../glass/LiquidGlass'
+import { lockScroll, scrollToTarget } from '../../lib/smoothScroll'
 
-// Immersive landing + persistent universe.
+// The landing journey.
 //
-// The canvas is FIXED behind the whole site (-z-10); content scrolls above it.
-// 420vh of scroll scrubs the camera toward the tear; past the crossing, a
-// second scrubbed range keeps the camera drifting through the star field
-// behind projects / blog / contact, so the transition needs only a soft
-// bloom of light (peak ~0.65) instead of a hard white-out — the stars
-// themselves carry the continuity.
+// A 520vh runway scrubs the walk: stars gather into a winding road and the
+// camera follows it to a door standing alone at its end. The page ends there
+// until the door is opened — by the button, or by clicking the door itself.
+// Opening plays one timed sequence (swing, push through, warm white-out),
+// reveals the site under the light and lands on Work.
 //
-// All scroll progress is computed in a plain passive scroll listener rather
-// than an animation-frame-driven library, so the DOM side (flash, text fade,
-// navbar reveal) stays correct even when the WebGL frame rate dips — the 3D
-// side smooths the same raw values with per-frame damping in the camera rig.
-//
-//   up   — rises near the end of the flight
-//   down — falls as the next section scrolls in
-// flash = min(up, down), seamless in both scroll directions.
+// Once open, the content sits directly after the runway, and scrolling
+// between them scrubs the camera back and forth through the doorway.
 
-const FLASH_PEAK = 0.65
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
 
-export default function CosmicLanding({ onEntered }) {
+export function resetJourney(opened) {
+  journey.progress.target = journey.progress.value = 0
+  journey.content.target = journey.content.value = 0
+  journey.door.open = opened ? 1 : 0
+  journey.door.push = 0
+  journey.door.hover = 0
+  journey.opened = opened
+}
+
+export default function CosmicLanding({ opened, onOpen, onEntered, reduced }) {
   const wrapRef = useRef(null)
   const flashRef = useRef(null)
-  const nameRef = useRef(null)
+  const introRef = useRef(null)
   const hintRef = useRef(null)
-  const progressRef = useRef({ target: 0, value: 0 })
-  const contentRef = useRef({ target: 0, value: 0 })
-  const [soundOn, setSoundOn] = useState(false)
-  const [reduced, setReduced] = useState(
-    () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  )
-  // captured once — flipping it on resize would swap star/particle counts on
-  // live geometries (attribute-size corruption) and remount the whole scene
+  const ctaRef = useRef(null)
+  const hitRef = useRef(null)
+  const busy = useRef(false)
   const [isMobile] = useState(() => window.innerWidth < 768)
 
-  useEffect(() => {
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const onChange = (e) => setReduced(e.matches)
-    mq.addEventListener('change', onChange)
-    return () => mq.removeEventListener('change', onChange)
-  }, [])
-
-  useEffect(() => {
-    if (reduced) {
-      // the sound button unmounts with the scene — don't strand audio playing
-      ambient.mute()
-      return
-    }
-    return attachInteraction()
-  }, [reduced])
+  useEffect(() => (reduced ? undefined : attachInteraction()), [reduced])
 
   useLayoutEffect(() => {
-    if (reduced) {
-      onEntered?.(true)
-      return
-    }
+    journey.opened = opened
+    if (opened) journey.door.open = 1
+  }, [opened])
+
+  useLayoutEffect(() => {
+    if (reduced) return
 
     let firstRun = true
     let entered = false
 
     const update = () => {
       const wrap = wrapRef.current
-      const after = document.getElementById('after-cosmic')
-      if (!wrap || !after) return
+      if (!wrap) return
       const vh = window.innerHeight
 
-      // landing flight: wrapper top pinned at 0 → bottom reaching viewport bottom
       const wr = wrap.getBoundingClientRect()
       const p = clamp01(-wr.top / Math.max(1, wr.height - vh))
-      progressRef.current.target = p
+      journey.progress.target = p
 
-      // content phase: #after-cosmic from entering the viewport to its bottom
-      const ar = after.getBoundingClientRect()
-      const entry = clamp01((vh - ar.top) / (vh * 0.45)) // top:bottom → top:55%
-      contentRef.current.target = clamp01((vh - ar.top) / Math.max(1, ar.height))
+      // past the door: how far the content has come up through the doorway
+      const after = document.getElementById('after-cosmic')
+      let entry = 0
+      if (journey.opened && after) {
+        const ar = after.getBoundingClientRect()
+        entry = clamp01((vh - ar.top) / (vh * 0.6))
+        journey.content.target = clamp01((vh * 0.4 - ar.top) / Math.max(1, ar.height))
+        if (!busy.current) {
+          journey.door.push = entry
+          // a warm wash at the moment of crossing, gone once through
+          const f = 0.5 * Math.sin(Math.PI * entry)
+          gsap.set(flashRef.current, { autoAlpha: f })
+        }
+      }
 
-      // scroll restoration (reload / back-nav mid-page): snap the smoothed
-      // values to their targets so the camera doesn't replay the whole flight
-      if (firstRun) {
+      if (firstRun || journey.snap) {
+        journey.snap = false
+        journey.cameraSnap = true
         firstRun = false
-        progressRef.current.value = progressRef.current.target
-        contentRef.current.value = contentRef.current.target
+        journey.progress.value = journey.progress.target
+        journey.content.value = journey.content.target
       }
 
-      // soft bloom of light only around the actual crossing moment
-      const up = clamp01((p - 0.92) / 0.06) * FLASH_PEAK
-      const down = (1 - entry) * FLASH_PEAK
-      const f = Math.min(up, down)
-      if (flashRef.current) {
-        flashRef.current.style.opacity = f
-        flashRef.current.style.visibility = f > 0.001 ? 'visible' : 'hidden'
+      if (introRef.current) {
+        introRef.current.style.opacity = 1 - clamp01(p / 0.1)
+        introRef.current.style.transform = `translateY(${p * -80}px)`
       }
+      if (hintRef.current) hintRef.current.style.opacity = 1 - clamp01(p / 0.05)
 
-      // the only visible text fades away as the journey begins
-      if (nameRef.current) {
-        nameRef.current.style.opacity = 1 - clamp01(p / 0.14)
-        nameRef.current.style.transform = `translateY(${p * -60}px)`
-      }
-      if (hintRef.current) {
-        hintRef.current.style.opacity = 1 - clamp01(p / 0.08)
-      }
+      // the invitation appears as the door comes into full view
+      const atDoor = p > 0.9 && !journey.opened
+      ctaRef.current?.classList.toggle('is-shown', atDoor)
+      if (hitRef.current) hitRef.current.style.pointerEvents = p > 0.8 && !journey.opened ? 'auto' : 'none'
 
-      // hysteresis so scroll jitter at the threshold can't flicker the navbar
-      if (!entered && entry > 0.3) entered = true
-      else if (entered && entry < 0.15) entered = false
+      // hysteresis so jitter at the threshold can't flicker the navbar
+      if (!entered && journey.opened && entry > 0.4) entered = true
+      else if (entered && entry < 0.2) entered = false
       onEntered?.(entered)
     }
 
@@ -124,77 +112,125 @@ export default function CosmicLanding({ onEntered }) {
     }
   }, [reduced, onEntered])
 
-  const toggleSound = async () => {
-    const playing = await ambient.toggle()
-    setSoundOn(!!playing)
+  const openDoor = useCallback(() => {
+    if (busy.current || journey.opened) return
+    busy.current = true
+    lockScroll(true)
+    ctaRef.current?.classList.remove('is-shown')
+
+    const door = journey.door
+    gsap
+      .timeline({
+        onComplete: () => {
+          busy.current = false
+          lockScroll(false)
+        },
+      })
+      .to(door, { hover: 0, duration: 0.3 }, 0)
+      // the slab swings, light floods the road
+      .to(door, { open: 1, duration: 1.5, ease: 'power3.inOut' }, 0)
+      // then the walk through, quickening
+      .to(door, { push: 1, duration: 1.7, ease: 'power2.in' }, 0.75)
+      // into the light
+      .to(flashRef.current, { autoAlpha: 1, duration: 0.55, ease: 'power2.in' }, 1.9)
+      .add(() => {
+        // reveal the site under the light and land on Work
+        flushSync(() => onOpen?.())
+        scrollToTarget('#work', { immediate: true })
+      }, 2.5)
+      .to(flashRef.current, { autoAlpha: 0, duration: 1.3, ease: 'power2.out' }, 2.65)
+  }, [onOpen])
+
+  const hoverDoor = (on) => {
+    if (busy.current || journey.opened) return
+    gsap.to(journey.door, { hover: on ? 1 : 0, duration: 0.6, ease: 'power2.out' })
   }
 
   if (reduced) return <Hero />
 
   return (
     <>
-      {/* the universe — behind everything, for the entire page.
-          -z-10 keeps it under all static content within main's stacking
-          context while still painting above the body background. */}
+      {/* the universe — fixed behind everything for the whole page */}
       <div className="fixed inset-0 -z-10 pointer-events-none">
         <Canvas
           dpr={[1, 1.75]}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
-          camera={{ position: [0, 0, 62], fov: 58, near: 0.1, far: 400 }}
+          camera={{ position: [0, 0, 70], fov: 60, near: 0.1, far: 400 }}
         >
-          <Scene progressRef={progressRef} contentRef={contentRef} isMobile={isMobile} />
+          <Scene isMobile={isMobile} />
         </Canvas>
       </div>
 
-      {/* scroll runway for the flight, with the only text in the void */}
-      <div ref={wrapRef} className="relative h-[420vh]">
+      <div ref={wrapRef} className="relative h-[520vh]">
         <div className="sticky top-0 h-screen overflow-hidden">
+          {/* the name, before the walk begins */}
           <div
-            ref={nameRef}
-            className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none will-change-transform"
+            ref={introRef}
+            className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none will-change-transform px-6"
           >
-            <p className="text-muted text-xs font-medium tracking-[0.4em] uppercase mb-5">
+            <p className="font-mono text-stone uppercase mb-6" style={{ fontSize: '10px', letterSpacing: '0.42em' }}>
               Product · Strategy · Technology
             </p>
-            <h1 className="text-4xl sm:text-6xl font-extrabold text-white/90 tracking-tight text-center">
+            <h1
+              className="font-serif text-cream text-center"
+              style={{ fontSize: 'clamp(52px, 10vw, 128px)', lineHeight: 0.95, letterSpacing: '-0.01em' }}
+            >
               Gaurang Sultania
             </h1>
+            <p className="font-serif italic text-stone mt-6 text-center" style={{ fontSize: 'clamp(16px, 2vw, 20px)' }}>
+              follow the stars to the door
+            </p>
           </div>
 
-          <div
-            ref={hintRef}
-            className="absolute bottom-10 inset-x-0 flex flex-col items-center gap-3 pointer-events-none"
-          >
-            <span className="text-muted text-[10px] tracking-[0.35em] uppercase">
-              Scroll into the void
+          <div ref={hintRef} className="absolute bottom-10 inset-x-0 flex justify-center">
+            <Glass size="sm" onClick={() => scrollToTarget(window.innerHeight * 1.4)}>
+              Scroll to begin <span aria-hidden="true">↓</span>
+            </Glass>
+          </div>
+
+          {/* invisible hit area laid over the door by the scene each frame */}
+          <button
+            ref={(el) => {
+              hitRef.current = el
+              journey.hitEl = el
+            }}
+            type="button"
+            aria-label="Open the door"
+            tabIndex={-1}
+            onClick={openDoor}
+            onMouseEnter={() => hoverDoor(true)}
+            onMouseLeave={() => hoverDoor(false)}
+            className="absolute left-0 top-0 cursor-pointer"
+            style={{ background: 'transparent', border: 'none', pointerEvents: 'none' }}
+          />
+
+          <div ref={ctaRef} className="door-cta absolute bottom-12 inset-x-0 flex flex-col items-center gap-4">
+            <Glass
+              size="lg"
+              onClick={openDoor}
+              onMouseEnter={() => hoverDoor(true)}
+              onMouseLeave={() => hoverDoor(false)}
+            >
+              Open the door
+            </Glass>
+            <span className="font-mono text-stone" style={{ fontSize: '10px', letterSpacing: '0.2em' }}>
+              the work is on the other side
             </span>
-            <div className="w-px h-10 bg-gradient-to-b from-muted to-transparent animate-pulse" />
           </div>
         </div>
       </div>
 
-      {/* Flash + sound button portal to <body>: inside <main class="z-10">
-          their z-indexes would be sealed below the navbar's z-50. */}
+      {/* the light — portalled so it sits above the navbar */}
       {createPortal(
-        <>
-          {/* soft light at the threshold */}
-          <div
-            ref={flashRef}
-            className="fixed inset-0 z-[60] bg-white pointer-events-none"
-            style={{ opacity: 0, visibility: 'hidden' }}
-          />
-
-          {/* sound — audio can only start from a gesture */}
-          <button
-            onClick={toggleSound}
-            className="fixed bottom-6 right-6 z-[70] text-[10px] tracking-[0.3em] uppercase text-muted hover:text-white transition-colors"
-            aria-label={soundOn ? 'Mute ambient sound' : 'Play ambient sound'}
-          >
-            <span className={soundOn ? 'text-white' : ''}>
-              {soundOn ? '● sound on' : '○ sound off'}
-            </span>
-          </button>
-        </>,
+        <div
+          ref={flashRef}
+          className="fixed inset-0 z-[60] pointer-events-none"
+          style={{
+            opacity: 0,
+            visibility: 'hidden',
+            background: 'radial-gradient(ellipse at 50% 55%, #fffaf0 0%, #fbe9c9 55%, #e9cf9c 100%)',
+          }}
+        />,
         document.body
       )}
     </>

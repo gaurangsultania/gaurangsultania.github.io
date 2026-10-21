@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { GlassBar } from './glass/LiquidGlass'
 import projects from '../data/projects.json'
 
 function useReveal(ref) {
@@ -111,17 +113,27 @@ export default function Projects() {
         </div>
 
         {/* Filter tabs */}
-        <div className="flex flex-wrap gap-6 mb-10">
+        <GlassBar className="mb-10 max-w-full overflow-x-auto" style={{ width: 'fit-content' }} role="tablist">
           {allCategories.map((cat) => (
             <button
               key={cat}
+              type="button"
+              role="tab"
+              aria-selected={active === cat}
               onClick={() => setActive(cat)}
-              className={`filter-tab${active === cat ? ' active' : ''}`}
+              className={`lg-item${active === cat ? ' is-active' : ''}`}
             >
+              {active === cat && (
+                <motion.span
+                  layoutId="filter-drop"
+                  className="lg-drop"
+                  transition={{ type: 'spring', stiffness: 380, damping: 26, mass: 0.9 }}
+                />
+              )}
               {cat}
             </button>
           ))}
-        </div>
+        </GlassBar>
 
         {/* Project list */}
         <div>
