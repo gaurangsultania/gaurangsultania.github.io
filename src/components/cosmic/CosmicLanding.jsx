@@ -11,7 +11,7 @@ import { lockScroll, scrollToTarget } from '../../lib/smoothScroll'
 
 // The landing journey.
 //
-// A 280vh runway scrubs the walk: stars gather into a winding road and the
+// A 190vh runway scrubs the walk: stars gather into a winding road and the
 // camera follows it to a door standing alone at its end. The page ends there
 // until the door is opened — by the button, or by clicking the door itself.
 // Opening plays one timed sequence (swing, push through, warm white-out),
@@ -155,13 +155,13 @@ export default function CosmicLanding({ opened, onOpen, onEntered, reduced }) {
         <Canvas
           dpr={[1, 1.75]}
           gl={{ antialias: false, powerPreference: 'high-performance' }}
-          camera={{ position: [0, 0, 70], fov: 60, near: 0.1, far: 400 }}
+          camera={{ position: [0, 0, 46], fov: 60, near: 0.1, far: 400 }}
         >
           <Scene isMobile={isMobile} />
         </Canvas>
       </div>
 
-      <div ref={wrapRef} className="relative h-[280vh]">
+      <div ref={wrapRef} className="relative h-[190vh]">
         <div className="sticky top-0 h-screen overflow-hidden">
           {/* the name, before the walk begins */}
           <div
@@ -183,7 +183,7 @@ export default function CosmicLanding({ opened, onOpen, onEntered, reduced }) {
           </div>
 
           <div ref={hintRef} className="absolute bottom-10 inset-x-0 flex justify-center">
-            <Glass size="sm" onClick={() => scrollToTarget(window.innerHeight * 0.9)}>
+            <Glass size="sm" onClick={() => scrollToTarget(window.innerHeight * 0.5)}>
               Scroll to begin <span aria-hidden="true">↓</span>
             </Glass>
           </div>

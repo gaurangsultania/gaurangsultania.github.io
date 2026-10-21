@@ -177,7 +177,7 @@ export default function Door() {
     <group position={doorBase} rotation={[0, doorYaw, 0]}>
       {/* frame */}
       <mesh geometry={frameGeo} position={[0, 0, 0.02]}>
-        <meshBasicMaterial color={new THREE.Color(1.5, 1.2, 0.85)} toneMapped={false} />
+        <meshBasicMaterial color={new THREE.Color(1.5, 1.2, 0.85)} toneMapped={false} fog={false} />
       </mesh>
 
       {/* the light beyond */}
@@ -208,7 +208,7 @@ export default function Door() {
 
       {/* halo around the whole arch */}
       <sprite position={[0, DOOR_H * 0.5, -0.3]} scale={[DOOR_W * 5, DOOR_H * 3, 1]}>
-        <spriteMaterial ref={glowMat} map={glowMap} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} color="#ffd6a0" />
+        <spriteMaterial ref={glowMat} map={glowMap} transparent opacity={0} fog={false} depthWrite={false} blending={THREE.AdditiveBlending} color="#ffd6a0" />
       </sprite>
     </group>
   )

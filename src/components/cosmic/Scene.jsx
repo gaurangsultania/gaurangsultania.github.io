@@ -24,6 +24,10 @@ const smoothLook = new THREE.Vector3(0, 0, 0)
 const tmp = new THREE.Vector3()
 const parallax = { x: 0, y: 0 }
 const corner = new THREE.Vector3()
+const toDoor = new THREE.Vector3()
+const UP = new THREE.Vector3(0, 1, 0)
+// where the door sits in the opening frame, as a fraction of the half-frame (left, down)
+const INTRO_FRAME = { x: 0.55, y: 0.5 }
 
 // the camera's arrival spot, a few steps short of the door
 const stopPos = curve.getPointAt(CAM_STOP).clone()
@@ -53,6 +57,21 @@ function CameraRig() {
     // the gaze swings from the road ahead onto the door over the last stretch
     const arrive = THREE.MathUtils.smoothstep(p, 0.72, 1)
     look.lerpVectors(ahead, doorCenter, arrive)
+
+    // opening frame: the gaze lifts up and to the right so the door sits low
+    // in the left of the frame, clear of the name; it settles onto the road
+    // as the walk begins
+    const intro = 1 - THREE.MathUtils.smoothstep(p, 0, 0.2)
+    if (intro > 0) {
+      const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+      toDoor.subVectors(doorCenter, pos)
+      const dist = toDoor.length()
+      toDoor.applyAxisAngle(UP, -Math.atan(INTRO_FRAME.x * tanV * camera.aspect))
+      toDoor.normalize()
+      toDoor.y += Math.tan(Math.atan(INTRO_FRAME.y * tanV)) * Math.hypot(toDoor.x, toDoor.z)
+      tmp.copy(pos).addScaledVector(toDoor.normalize(), dist)
+      look.lerp(tmp, intro)
+    }
 
     // a slow sway while walking, damped to stillness at the door
     const sway = 1 - arrive * 0.85

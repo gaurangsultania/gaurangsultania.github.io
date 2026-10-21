@@ -13,14 +13,14 @@ export const DOOR_H = 5.6
 
 export const curve = new THREE.CatmullRomCurve3(
   [
-    new THREE.Vector3(0, 0, 70),
-    new THREE.Vector3(5, -0.6, 50),
-    new THREE.Vector3(-6, 0.4, 30),
-    new THREE.Vector3(6.5, 1.2, 8),
-    new THREE.Vector3(-5.5, 0.4, -14),
-    new THREE.Vector3(4.5, -0.4, -36),
-    new THREE.Vector3(-2, 0, -56),
-    new THREE.Vector3(0, 0, -72),
+    new THREE.Vector3(0, 0, 46),
+    new THREE.Vector3(3.8, -0.5, 33),
+    new THREE.Vector3(-4.5, 0.3, 20),
+    new THREE.Vector3(4.9, 0.9, 5),
+    new THREE.Vector3(-4.1, 0.3, -9),
+    new THREE.Vector3(3.4, -0.3, -23),
+    new THREE.Vector3(-1.5, 0, -36),
+    new THREE.Vector3(0, 0, -47),
   ],
   false,
   'centripetal',
@@ -29,7 +29,7 @@ export const curve = new THREE.CatmullRomCurve3(
 
 // where the camera stops, as a fraction of the curve — a few steps short of
 // the door so the whole arch is in frame
-export const CAM_STOP = 0.915
+export const CAM_STOP = 0.87
 
 // camera position on the curve for a given (smoothed) scroll progress —
 // eased so the arrival settles instead of stopping dead
