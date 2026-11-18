@@ -9,6 +9,20 @@
     scroll-behavior: smooth;
   }
 
+  /* Lenis drives the scroll; native smoothing would fight it */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
   body {
     @apply bg-canvas text-cream font-mono antialiased;
   }
@@ -134,7 +148,9 @@
   .nav-overlay {
     position: fixed;
     inset: 0;
-    background: #0d0c0a;
+    background: rgba(13, 12, 10, 0.72);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    backdrop-filter: blur(24px) saturate(160%);
     z-index: 100;
     display: flex;
     flex-direction: column;
@@ -143,4 +159,207 @@
     padding-left: 12vw;
     gap: 2rem;
   }
+}
+
+/* Plain CSS, outside Tailwind layers: class names here are composed at
+   runtime (lg--sm, is-shown...) and must not be purged. */
+/* ─── Liquid glass ─────────────────────────────────────────────────────────
+   Modelled on Apple's Liquid Glass: a clear, neutral pane with a light
+   frost, a hairline specular rim lit from the top-left and bottom-right, a
+   soft lift shadow, and on press the pane swells and glows from the touch
+   point. Refraction is added per element by
+   components/glass/LiquidGlass.jsx on Chromium. */
+.lg {
+  --lg-radius: 999px;
+  --tx: 0px;
+  --ty: 0px;
+  --s: 1;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--lg-radius);
+  color: rgba(255, 255, 255, 0.94);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Inter, system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  backdrop-filter: blur(12px) saturate(180%);
+  box-shadow:
+    inset 1px 1px 0 -0.5px rgba(255, 255, 255, 0.55),
+    inset -1px -1px 0 -0.5px rgba(255, 255, 255, 0.28),
+    inset 0 0 0 0.5px rgba(255, 255, 255, 0.14),
+    inset 0 0 16px rgba(255, 255, 255, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.28),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: translate(var(--tx), var(--ty)) scale(var(--s));
+  transition:
+    transform 500ms cubic-bezier(0.25, 1.4, 0.5, 1),
+    background 250ms ease,
+    box-shadow 250ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* specular sheen across the upper half, as on a curved pane */
+.lg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 52%);
+}
+
+/* the glow that blooms from the pointer on press */
+.lg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0) 65%);
+  opacity: 0;
+  transition: opacity 350ms ease;
+}
+
+.lg__label {
+  position: relative;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  white-space: nowrap;
+}
+
+.lg:hover {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.lg:hover::before {
+  opacity: 0.35;
+}
+
+/* pressed: the pane swells and lights up under the finger */
+.lg.is-pressed {
+  --s: 1.06;
+  background: rgba(255, 255, 255, 0.12);
+  transition-duration: 220ms;
+}
+
+.lg.is-pressed::before {
+  opacity: 1;
+  transition-duration: 120ms;
+}
+
+.lg:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 3px;
+}
+
+.lg--sm { padding: 0.5rem 1rem; font-size: 13px; }
+.lg--md { padding: 0.65rem 1.25rem; font-size: 14px; }
+.lg--lg { padding: 0.95rem 2rem; font-size: 16px; }
+
+.lg--bar {
+  display: flex;
+  padding: 4px;
+  gap: 0;
+  cursor: default;
+}
+
+.lg--bar:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.lg--bar::before {
+  display: none;
+}
+
+/* items inside a glass bar, with a clear pane sliding beneath the active one */
+.lg-item {
+  position: relative;
+  z-index: 3;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Inter, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 200ms ease;
+  white-space: nowrap;
+}
+
+.lg-item:hover,
+.lg-item.is-active {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.lg-item:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+.lg-drop {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 1px 1px 0 -0.5px rgba(255, 255, 255, 0.5),
+    inset -1px -1px 0 -0.5px rgba(255, 255, 255, 0.22),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.sound-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+}
+
+.sound-bars > span {
+  width: 2px;
+  height: 100%;
+  border-radius: 1px;
+  background: currentColor;
+  transform: scaleY(0.25);
+  transform-origin: bottom;
+}
+
+.lg-caption {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Inter, system-ui, sans-serif;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lg { transition: background 200ms ease; }
+}
+
+/* the invitation at the door */
+.door-cta {
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  transition: opacity 700ms ease, transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.door-cta.is-shown {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
 }

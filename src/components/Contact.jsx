@@ -1,4 +1,5 @@
 import { useRef, useEffect } from 'react'
+import { Glass } from './glass/LiquidGlass'
 
 function useReveal(ref) {
   useEffect(() => {
@@ -15,8 +16,8 @@ function useReveal(ref) {
 
 const contactLinks = [
   { label: 'gaurangsultania@gmail.com', href: 'mailto:gaurangsultania@gmail.com' },
-  { label: 'linkedin',                  href: 'https://linkedin.com/in/gaurangsultania' },
-  { label: 'github',                    href: 'https://github.com/gaurangsultania' },
+  { label: 'LinkedIn',                  href: 'https://linkedin.com/in/gaurangsultania' },
+  { label: 'GitHub',                    href: 'https://github.com/gaurangsultania' },
 ]
 
 export default function Contact() {
@@ -38,18 +39,17 @@ export default function Contact() {
           </p>
 
           {/* Links — no form, no theatre */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
             {contactLinks.map((l) => (
-              <a
+              <Glass
                 key={l.label}
+                as="a"
                 href={l.href}
                 target={l.href.startsWith('mailto') ? undefined : '_blank'}
                 rel="noopener noreferrer"
-                className="font-mono text-stone nav-link"
-                style={{ fontSize: '12px', letterSpacing: '0.08em', textTransform: 'none' }}
               >
                 {l.label}
-              </a>
+              </Glass>
             ))}
           </div>
         </div>

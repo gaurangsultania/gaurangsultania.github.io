@@ -46,7 +46,7 @@ const vertexShader = /* glsl */ `
       * (1.0 + tw * 0.16 * (0.3 + uHigh))
       * (1.0 + max(uHole, 0.0) * fall * 0.6); // infalling stars brighten
 
-    gl_PointSize = min(size * uPixelRatio * 95.0 / dist, 15.0 * uPixelRatio);
+    gl_PointSize = min(size * uPixelRatio * 80.0 / dist, 7.0 * uPixelRatio);
 
     float twinkle = 0.72 + 0.28 * tw * (0.35 + 0.65 * uHigh);
     float fogFade = exp(-dist * 0.013);
@@ -103,10 +103,10 @@ export default function Stars({ count = 5200 }) {
       // Cylindrical shell around the camera path, covering deep space before
       // the tear and the universe beyond it, keeping a loose corridor clear.
       const angle = Math.random() * Math.PI * 2
-      const radius = 3 + Math.pow(Math.random(), 0.6) * 70
+      const radius = 9 + Math.pow(Math.random(), 0.6) * 70
       positions[i * 3] = Math.cos(angle) * radius
       positions[i * 3 + 1] = Math.sin(angle) * radius * 0.7
-      positions[i * 3 + 2] = -170 + Math.random() * 300
+      positions[i * 3 + 2] = -230 + Math.random() * 330
 
       scales[i] = 0.5 + Math.pow(Math.random(), 3.0) * 2.6
       phases[i] = Math.random() * Math.PI * 2

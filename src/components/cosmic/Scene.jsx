@@ -1,108 +1,177 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { EffectComposer, Bloom, DepthOfField, ChromaticAberration, Vignette } from '@react-three/postprocessing'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import Stars from './Stars'
-import Portal from './Portal'
+import StarPath from './StarPath'
+import Door from './Door'
 import { ambient } from './audio'
 import { interaction } from './interaction'
+import { journey, addPulse, curve, CAM_STOP, camU, doorCenter, doorFacing, DOOR_W, DOOR_H } from './journey'
 
-// Two-phase journey, one continuous camera:
-//   landing (progressRef): deep space z=62 → the lip of the tear z=2.2
-//   content (contentRef):  through the tear and onward, z=2.2 → -55, as the
-//                          user browses projects / blog / contact
-// Mouse parallax rides on top of both phases; the black-hole strength spring
-// (build while held, elastic bounce on release) is integrated here so every
-// consumer reads one shared value.
+// One continuous camera:
+//   walk    — rides the winding curve at eye height, looking a little ahead,
+//             turning its gaze onto the door as it arrives
+//   push    — through the open doorway into the light (GSAP or scroll driven)
+//   beyond  — drifts on through the star field behind the content sections
+// The target pose is computed from those inputs every frame and the real
+// camera is damped toward it, so any discontinuity (a scroll jump hidden by
+// the flash, a resize) resolves as a glide rather than a cut.
 
-const CAM_START = 62
-const CAM_END = 2.2
-const CAM_DEEP = -55
+const pos = new THREE.Vector3()
+const ahead = new THREE.Vector3()
 const look = new THREE.Vector3()
+const smoothLook = new THREE.Vector3(0, 0, 0)
+const tmp = new THREE.Vector3()
 const parallax = { x: 0, y: 0 }
+const corner = new THREE.Vector3()
+const toDoor = new THREE.Vector3()
+const UP = new THREE.Vector3(0, 1, 0)
+// where the door sits in the opening frame, as a fraction of the half-frame (left, down)
+const INTRO_FRAME = { x: 0.55, y: 0.5 }
 
-function CameraRig({ progressRef, contentRef }) {
-  const { camera } = useThree()
+// the camera's arrival spot, a few steps short of the door
+const stopPos = curve.getPointAt(CAM_STOP).clone()
+// through the doorway and out the far side
+const throughPos = doorCenter.clone().addScaledVector(doorFacing, -6)
+throughPos.y = stopPos.y + 0.6
+
+function CameraRig() {
+  const { camera, size } = useThree()
 
   useFrame((state, delta) => {
     ambient.update()
+    springHole(delta)
 
-    // --- black hole spring ---
-    if (interaction.holding) {
-      // strength builds over ~1s while held; kill any leftover bounce
-      interaction.holeStrength = THREE.MathUtils.damp(interaction.holeStrength, 1, 2.2, delta)
-      interaction.holeVelocity = 0
-    } else if (Math.abs(interaction.holeStrength) > 0.0005 || Math.abs(interaction.holeVelocity) > 0.0005) {
-      // underdamped spring back to 0 — stars overshoot outward then settle
-      const dt = Math.min(delta, 1 / 30)
-      interaction.holeVelocity += (-70 * interaction.holeStrength - 9 * interaction.holeVelocity) * dt
-      interaction.holeStrength = THREE.MathUtils.clamp(
-        interaction.holeStrength + interaction.holeVelocity * dt, -0.25, 1
-      )
-    } else {
-      interaction.holeStrength = 0
-      interaction.holeVelocity = 0
+    const pr = journey.progress
+    const cr = journey.content
+    pr.value = THREE.MathUtils.damp(pr.value, pr.target, 5, delta)
+    cr.value = THREE.MathUtils.damp(cr.value, cr.target, 5, delta)
+    const p = pr.value
+    const t = state.clock.elapsedTime
+    const push = journey.door.push
+
+    // a bass hit sends a wave down the road, starting just behind the camera
+    if (ambient.onset) addPulse(t, camU(p) - 0.015, ambient.onsetStrength)
+
+    // --- walk ---
+    const u = camU(p)
+    curve.getPointAt(u, pos)
+    curve.getPointAt(Math.min(u + 0.035, 1), ahead)
+    // the gaze swings from the road ahead onto the door over the last stretch
+    const arrive = THREE.MathUtils.smoothstep(p, 0.72, 1)
+    look.lerpVectors(ahead, doorCenter, arrive)
+
+    // opening frame: the gaze lifts up and to the right so the door sits low
+    // in the left of the frame, clear of the name; it settles onto the road
+    // as the walk begins
+    const intro = 1 - THREE.MathUtils.smoothstep(p, 0, 0.2)
+    if (intro > 0) {
+      const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2))
+      toDoor.subVectors(doorCenter, pos)
+      const dist = toDoor.length()
+      toDoor.applyAxisAngle(UP, -Math.atan(INTRO_FRAME.x * tanV * camera.aspect))
+      toDoor.normalize()
+      toDoor.y += Math.tan(Math.atan(INTRO_FRAME.y * tanV)) * Math.hypot(toDoor.x, toDoor.z)
+      tmp.copy(pos).addScaledVector(toDoor.normalize(), dist)
+      look.lerp(tmp, intro)
     }
 
-    const pr = progressRef.current
-    const cr = contentRef.current
-    pr.value = THREE.MathUtils.damp(pr.value, pr.target, 2.4, delta)
-    cr.value = THREE.MathUtils.damp(cr.value, cr.target, 2.4, delta)
-    const p = pr.value
-    const c = cr.value
-    const t = state.clock.elapsedTime
+    // a slow sway while walking, damped to stillness at the door
+    const sway = 1 - arrive * 0.85
+    pos.x += Math.sin(t * 0.3) * 0.12 * sway
+    pos.y += Math.sin(t * 0.55) * 0.06 * sway
 
-    // accelerate slightly as the portal nears — a gravity well
-    const travel = Math.pow(p, 1.22)
-    const sway = 0.25 + 0.75 * (1 - p)
+    // --- push through the doorway, then drift beyond ---
+    if (push > 0) {
+      tmp.lerpVectors(stopPos, throughPos, push)
+      pos.lerp(tmp, Math.min(1, push * 1.4))
+      look.lerp(tmp.copy(doorCenter).addScaledVector(doorFacing, -40), push)
+    }
+    if (journey.opened && cr.value > 0) {
+      pos.addScaledVector(doorFacing, -cr.value * 60)
+      look.addScaledVector(doorFacing, -cr.value * 60)
+    }
 
-    // mouse parallax, damped so it glides
-    parallax.x = THREE.MathUtils.damp(parallax.x, interaction.mouse.x * 0.8, 3, delta)
-    parallax.y = THREE.MathUtils.damp(parallax.y, interaction.mouse.y * 0.5, 3, delta)
+    // pointer parallax, gentle
+    parallax.x = THREE.MathUtils.damp(parallax.x, interaction.mouse.x * 0.35, 3, delta)
+    parallax.y = THREE.MathUtils.damp(parallax.y, interaction.mouse.y * 0.2, 3, delta)
+    pos.x += parallax.x
+    pos.y += parallax.y
 
-    camera.position.z =
-      THREE.MathUtils.lerp(CAM_START, CAM_END, travel) + (CAM_DEEP - CAM_END) * c
-    camera.position.x =
-      Math.sin(t * 0.16) * 0.9 * sway + ambient.bands.bass * 0.12 * sway + parallax.x
-    camera.position.y = Math.cos(t * 0.11) * 0.55 * sway + parallax.y
+    // follow the target pose — tight during the timeline, softer otherwise
+    // (or instantly, after a jump the visitor shouldn't watch replayed)
+    const k = journey.cameraSnap ? 1e4 : push > 0 && push < 1 ? 14 : 6
+    journey.cameraSnap = false
+    camera.position.x = THREE.MathUtils.damp(camera.position.x, pos.x, k, delta)
+    camera.position.y = THREE.MathUtils.damp(camera.position.y, pos.y, k, delta)
+    camera.position.z = THREE.MathUtils.damp(camera.position.z, pos.z, k, delta)
+    smoothLook.x = THREE.MathUtils.damp(smoothLook.x, look.x, k, delta)
+    smoothLook.y = THREE.MathUtils.damp(smoothLook.y, look.y, k, delta)
+    smoothLook.z = THREE.MathUtils.damp(smoothLook.z, look.z, k, delta)
+    camera.lookAt(smoothLook)
 
-    // gaze converges on the tear as it forms, then releases forward once
-    // the crossing is behind us
-    const portalFocus = p * THREE.MathUtils.clamp(1 - c * 5, 0, 1)
-    look.set(0, 0, THREE.MathUtils.lerp(camera.position.z - 12, 0, portalFocus))
-    camera.lookAt(look)
-
-    // dolly-zoom into the tear, then settle back to a calm lens beyond it
-    const fovIn = THREE.MathUtils.lerp(58, 74, travel)
-    camera.fov = THREE.MathUtils.lerp(fovIn, 60, Math.min(c * 4, 1))
+    // the lens widens as we cross the threshold
+    const fov = 60 + push * 38 * (1 - push * 0.35)
+    camera.fov = THREE.MathUtils.damp(camera.fov, fov, k, delta)
     camera.updateProjectionMatrix()
+
+    placeHitArea(camera, size)
   })
 
   return null
 }
 
-export default function Scene({ progressRef, contentRef, isMobile }) {
+// lay the DOM hit area over the door's on-screen rectangle
+function placeHitArea(camera, size) {
+  const el = journey.hitEl
+  if (!el) return
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  const side = tmp.set(doorFacing.z, 0, -doorFacing.x) // horizontal, across the door
+  for (const [sx, sy] of [[-0.5, 0], [0.5, 0], [-0.5, 1], [0.5, 1]]) {
+    corner.copy(doorCenter).addScaledVector(side, sx * DOOR_W)
+    corner.y += (sy - 0.5) * DOOR_H
+    corner.project(camera)
+    const x = (corner.x * 0.5 + 0.5) * size.width
+    const y = (-corner.y * 0.5 + 0.5) * size.height
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x)
+    minY = Math.min(minY, y); maxY = Math.max(maxY, y)
+  }
+  el.style.transform = `translate(${minX}px, ${minY}px)`
+  el.style.width = `${Math.max(0, maxX - minX)}px`
+  el.style.height = `${Math.max(0, maxY - minY)}px`
+}
+
+// click-and-hold black hole: strength builds while held, springs back on release
+function springHole(delta) {
+  if (interaction.holding) {
+    interaction.holeStrength = THREE.MathUtils.damp(interaction.holeStrength, 1, 2.2, delta)
+    interaction.holeVelocity = 0
+  } else if (Math.abs(interaction.holeStrength) > 0.0005 || Math.abs(interaction.holeVelocity) > 0.0005) {
+    const dt = Math.min(delta, 1 / 30)
+    interaction.holeVelocity += (-70 * interaction.holeStrength - 9 * interaction.holeVelocity) * dt
+    interaction.holeStrength = THREE.MathUtils.clamp(
+      interaction.holeStrength + interaction.holeVelocity * dt, -0.25, 1
+    )
+  } else {
+    interaction.holeStrength = 0
+    interaction.holeVelocity = 0
+  }
+}
+
+export default function Scene({ isMobile }) {
   return (
     <>
       <color attach="background" args={['#030306']} />
-      <fogExp2 attach="fog" args={['#050508', 0.016]} />
+      <fogExp2 attach="fog" args={['#050508', 0.012]} />
 
-      <CameraRig progressRef={progressRef} contentRef={contentRef} />
-      <Stars count={isMobile ? 2800 : 5200} />
-      <Portal progressRef={progressRef} particleCount={isMobile ? 350 : 650} />
+      <CameraRig />
+      <Stars count={isMobile ? 2600 : 4800} />
+      <StarPath count={isMobile ? 5000 : 9000} />
+      <Door />
 
       <EffectComposer multisampling={0}>
-        <Bloom
-          intensity={1.15}
-          luminanceThreshold={0.18}
-          luminanceSmoothing={0.32}
-          mipmapBlur
-          radius={0.85}
-        />
-        {!isMobile && (
-          <DepthOfField focusDistance={0.025} focalLength={0.08} bokehScale={2.2} />
-        )}
-        <ChromaticAberration offset={[0.0006, 0.0004]} radialModulation modulationOffset={0.4} />
-        <Vignette eskil={false} offset={0.22} darkness={0.82} />
+        <Bloom intensity={0.9} luminanceThreshold={0.55} luminanceSmoothing={0.25} mipmapBlur radius={0.75} />
+        <Vignette eskil={false} offset={0.25} darkness={0.75} />
       </EffectComposer>
     </>
   )

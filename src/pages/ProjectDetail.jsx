@@ -1,9 +1,10 @@
 import { useParams, Link } from 'react-router-dom'
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useLayoutEffect } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import VideoEmbed from '../components/VideoEmbed'
 import PDFViewer from '../components/PDFViewer'
+import { Glass } from '../components/glass/LiquidGlass'
 import projects from '../data/projects.json'
 
 // Import all generated case study files at build time
@@ -156,15 +157,18 @@ export default function ProjectDetail() {
   const project    = projects.find((p) => p.slug === slug)
   const caseStudy  = getCaseStudy(slug)
 
+  // the router keeps the home page's scroll position; a case study starts at the top
+  useLayoutEffect(() => { window.scrollTo(0, 0) }, [slug])
+
   if (!project) {
     return (
       <div className="bg-canvas min-h-screen flex flex-col items-center justify-center">
         <p className="font-mono text-stone" style={{ fontSize: '12px', marginBottom: '1.5rem' }}>
           project not found.
         </p>
-        <Link to="/" className="font-mono text-stone nav-link" style={{ fontSize: '11px' }}>
-          ← all work
-        </Link>
+        <Glass as={Link} to="/" state={{ section: 'work' }} size="sm">
+          ← All work
+        </Glass>
       </div>
     )
   }
@@ -177,9 +181,9 @@ export default function ProjectDetail() {
     <div className="bg-canvas min-h-screen">
       {/* Back link */}
       <div className="content-wrap" style={{ paddingTop: '3rem' }}>
-        <Link to="/" className="font-mono text-stone nav-link" style={{ fontSize: '11px' }}>
-          ← work
-        </Link>
+        <Glass as={Link} to="/" state={{ section: 'work' }} size="sm">
+          ← Work
+        </Glass>
       </div>
 
       {/* Project hero */}
@@ -195,15 +199,9 @@ export default function ProjectDetail() {
             {project.tagline}
           </p>
           {project.link && (
-            <a
-              href={project.link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-mono text-stone nav-link"
-              style={{ fontSize: '11px' }}
-            >
-              view project ↗
-            </a>
+            <Glass as="a" href={project.link} target="_blank" rel="noopener noreferrer">
+              View project ↗
+            </Glass>
           )}
         </Section>
       </header>
@@ -262,9 +260,9 @@ export default function ProjectDetail() {
       {/* Footer nav */}
       <div className="content-wrap" style={{ paddingBottom: '4rem' }}>
         <div className="divider" style={{ marginBottom: '2rem' }} />
-        <Link to="/" className="font-mono text-stone nav-link" style={{ fontSize: '11px' }}>
-          ← work
-        </Link>
+        <Glass as={Link} to="/" state={{ section: 'work' }} size="sm">
+          ← Work
+        </Glass>
       </div>
     </div>
   )
